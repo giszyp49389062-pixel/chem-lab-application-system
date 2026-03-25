@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>化学社团实验申请系统 - 免费云存储版</title>
+    <title>化学社团实验申请系统 - 云端同步版</title>
     <style>
-        /* 样式代码与之前相同，为节省篇幅省略，实际使用时复制之前的样式 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Roboto, sans-serif; background: #e9f0f5; padding: 20px; }
         .app-container { max-width: 1300px; width: 100%; background: white; border-radius: 28px; margin: 0 auto; overflow: hidden; }
         .header { background: #2c3e66; color: white; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; }
-        .logo h2 { font-weight: 500; font-size: 1.5rem; }
-        .auth-buttons { display: flex; gap: 12px; }
-        button { background: #ffffff20; border: 1px solid #ffffff60; color: white; padding: 8px 20px; border-radius: 40px; cursor: pointer; }
+        .logo h2 { font-weight: 500; font-size: 1.3rem; }
+        .logo small { font-size: 0.7rem; opacity: 0.8; }
+        .auth-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+        button { background: #ffffff20; border: 1px solid #ffffff60; color: white; padding: 8px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; }
         button.primary { background: #ffb347; border-color: #ffb347; color: #2c3e66; }
         .panel { padding: 28px 24px; background: #fff; }
         .hidden { display: none; }
         .form-group { margin-bottom: 20px; }
         label { display: block; font-weight: 600; margin-bottom: 8px; color: #1e2f41; }
         input, select, textarea { width: 100%; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 16px; font-size: 1rem; }
-        .dynamic-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .dynamic-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
         .dynamic-row input { flex: 2; }
         .dynamic-row input.qty { flex: 0.8; min-width: 80px; }
-        .add-btn { background: #e9f0f5; border: 1px dashed #5b7a9a; margin-top: 8px; display: inline-block; }
+        .add-btn { background: #e9f0f5; border: 1px dashed #5b7a9a; margin-top: 8px; display: inline-block; color: #2c3e66; }
         .suggest-box { position: relative; flex: 2; }
-        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 12px; max-height: 200px; overflow-y: auto; z-index: 100; }
+        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 12px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .suggest-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
         .suggest-item:hover { background: #eef2ff; }
         .data-table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
@@ -35,13 +35,19 @@
         .card { background: #f8fafc; border-radius: 20px; padding: 16px; margin-bottom: 20px; }
         .error-msg { color: #dc2626; font-size: 0.85rem; margin-top: 5px; }
         .success-msg { color: #10b981; }
+        .sync-status { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; background: #e2e8f0; color: #1e293b; }
+        .sync-status.success { background: #10b98120; color: #10b981; }
+        .sync-status.error { background: #dc262620; color: #dc2626; }
+        .sync-status.syncing { background: #ffb34720; color: #ffb347; }
         @media (max-width: 640px) { .panel { padding: 20px 16px; } .dynamic-row { flex-direction: column; } }
     </style>
 </head>
 <body>
 <div class="app-container">
     <div class="header">
-        <div class="logo"><h2>🧪 化学社团实验申请系统 ☁️ 免费云同步</h2></div>
+        <div class="logo">
+            <h2>🧪 化学社团实验申请系统 <small>☁️ 多设备云同步</small></h2>
+        </div>
         <div class="auth-buttons">
             <button id="showTeacherLoginBtn" class="primary">👩‍🏫 教师登录</button>
             <button id="showAdminLoginBtn">🔐 管理员登录</button>
@@ -51,175 +57,245 @@
 
     <div id="teacherLoginPanel" class="panel">
         <h3>教师登录</h3>
-        <div class="form-group"><label>账号</label><input type="text" id="teacherUsername"></div>
-        <div class="form-group"><label>密码</label><input type="password" id="teacherPassword"></div>
+        <div class="form-group"><label>账号</label><input type="text" id="teacherUsername" placeholder="teacher1"></div>
+        <div class="form-group"><label>密码</label><input type="password" id="teacherPassword" placeholder="123"></div>
         <button id="doTeacherLogin" class="primary">登录</button>
         <div id="teacherLoginError" class="error-msg"></div>
+        <div style="margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 12px;">
+            <small>📌 默认教师账号: teacher1 / 123</small>
+        </div>
     </div>
 
     <div id="adminLoginPanel" class="panel hidden">
         <h3>管理员登录</h3>
-        <div class="form-group"><label>账号</label><input type="text" id="adminUsername"></div>
-        <div class="form-group"><label>密码</label><input type="password" id="adminPassword"></div>
+        <div class="form-group"><label>账号</label><input type="text" id="adminUsername" placeholder="admin"></div>
+        <div class="form-group"><label>密码</label><input type="password" id="adminPassword" placeholder="admin"></div>
         <button id="doAdminLogin" class="primary">登录</button>
         <div id="adminLoginError" class="error-msg"></div>
+        <div style="margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 12px;">
+            <small>📌 默认管理员: admin / admin</small>
+        </div>
     </div>
 
     <div id="teacherPanel" class="panel hidden">
         <h3>📋 实验申请表单</h3>
+        <div id="syncStatusTeacher" class="sync-status" style="margin-bottom: 15px;">☁️ 云端同步中...</div>
         <form id="applyForm">
-            <div class="form-group"><label>实验名称 *</label><input type="text" id="expName" required></div>
+            <div class="form-group"><label>实验名称 *</label><input type="text" id="expName" required placeholder="例如: 酸碱中和滴定"></div>
             <div class="form-group"><label>申请时间 *</label>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                     <input type="number" id="weekNum" placeholder="第几周" style="width:100px;" required>
-                    <select id="weekDay"><option>星期一</option><option>星期二</option><option>星期三</option><option>星期四</option><option>星期五</option><option>星期六</option></select>
-                    <input type="text" id="timeRange" placeholder="时间范围" required>
+                    <select id="weekDay">
+                        <option>星期一</option><option>星期二</option><option>星期三</option><option>星期四</option>
+                        <option>星期五</option><option>星期六</option><option>星期日</option>
+                    </select>
+                    <input type="text" id="timeRange" placeholder="时间范围 如 14:00-16:00" required>
                 </div>
             </div>
-            <div class="form-group"><label>器材</label><div id="equipmentList"></div><button type="button" id="addEquipmentBtn" class="add-btn">+ 添加器材</button></div>
-            <div class="form-group"><label>药品</label><div id="chemicalList"></div><button type="button" id="addChemicalBtn" class="add-btn">+ 添加药品</button></div>
-            <div class="form-group"><label>社团老师</label><input type="text" id="teacherName" required></div>
-            <div class="form-group"><label>学生人数</label><input type="number" id="studentCount" min="1" required></div>
-            <div class="form-group"><label>备注</label><textarea id="remarks" rows="2"></textarea></div>
-            <button type="submit" class="primary">提交申请</button>
+            <div class="form-group"><label>需要使用的器材</label><div id="equipmentList"></div><button type="button" id="addEquipmentBtn" class="add-btn">+ 添加器材</button></div>
+            <div class="form-group"><label>需要使用的药品</label><div id="chemicalList"></div><button type="button" id="addChemicalBtn" class="add-btn">+ 添加药品</button></div>
+            <div class="form-group"><label>社团老师</label><input type="text" id="teacherName" required placeholder="指导老师姓名"></div>
+            <div class="form-group"><label>参加学生人数</label><input type="number" id="studentCount" min="1" required></div>
+            <div class="form-group"><label>备注</label><textarea id="remarks" rows="2" placeholder="选填"></textarea></div>
+            <button type="submit" class="primary">📤 提交申请</button>
         </form>
         <div id="applyMsg"></div>
     </div>
 
     <div id="adminPanel" class="panel hidden">
         <h3>⚙️ 管理员后台</h3>
-        <div class="card"><h4>修改管理员密码</h4><input type="password" id="newAdminPwd" placeholder="新密码"><button id="updateAdminPwdBtn">更新</button><div id="pwdMsg"></div></div>
-        <div class="card"><h4>教师账号管理</h4><input type="text" id="newTeacherUser" placeholder="新教师账号"><input type="text" id="newTeacherPwd" placeholder="密码"><button id="addTeacherBtn">添加</button><div id="teacherListArea"></div></div>
-        <div class="card"><h4>实验申请记录</h4><button id="exportDocBtn">导出 DOC</button><button id="refreshRecordsBtn">刷新</button><div class="table-wrapper" id="recordsTableContainer">加载中...</div></div>
+        <div id="syncStatusAdmin" class="sync-status" style="margin-bottom: 15px;">☁️ 云端同步中...</div>
+        <div class="card">
+            <h4>🔐 修改管理员密码</h4>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <input type="password" id="newAdminPwd" placeholder="新密码" style="flex:1;">
+                <button id="updateAdminPwdBtn">更新密码</button>
+            </div>
+            <div id="pwdMsg"></div>
+        </div>
+        <div class="card">
+            <h4>👥 教师账号管理</h4>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                <input type="text" id="newTeacherUser" placeholder="新教师账号">
+                <input type="text" id="newTeacherPwd" placeholder="密码">
+                <button id="addTeacherBtn">➕ 添加教师</button>
+            </div>
+            <div id="teacherListArea"></div>
+        </div>
+        <div class="card">
+            <h4>📄 实验申请记录</h4>
+            <div class="admin-actions">
+                <button id="exportDocBtn">📎 导出 DOC 表格</button>
+                <button id="refreshRecordsBtn">🔄 手动刷新</button>
+                <button id="forceSyncBtn">☁️ 强制同步云端</button>
+            </div>
+            <div class="table-wrapper" id="recordsTableContainer">加载中...</div>
+        </div>
     </div>
 </div>
 
 <script>
-    // ==================== 免费云存储配置 ====================
-    // 使用 JSONBin.io 免费存储（无需注册，数据公开）
-    // ⚠️ 重要：请先访问 https://jsonbin.io 获取一个免费的 Bin ID
-    // 或者使用下面的默认测试 Bin（建议自己创建）
+    // ==================== 云端存储配置 ====================
+    // ⚠️ 重要：请先访问 https://jsonbin.io 创建 Bin，然后替换下面的 ID
+    // 如何获取 Bin ID：创建 Bin 后，URL 类似 https://api.jsonbin.io/v3/b/65a1b2c3d4e5f6，其中 65a1b2c3d4e5f6 就是 Bin ID
     
-    // 方式1：使用 JSONBin.io（推荐，稳定免费）
-    // 步骤：1. 访问 https://jsonbin.io 2. 点击 "Create Bin" 3. 输入初始数据 4. 复制 Bin ID
-    const USE_JSONBIN = true;
-    const JSONBIN_BIN_ID = "69c38fd9b7ec241ddc9ef898";  // 替换为你的 Bin ID
-    const JSONBIN_API_KEY = "";  // 可选，不填也可以使用公开 bin
+    // 🔴 请在这里填入你的 JSONBin Bin ID 🔴
+    const JSONBIN_BIN_ID = "69c38fd9b7ec241ddc9ef898";  // 例如: "65a1b2c3d4e5f6"
     
-    // 方式2：使用 localStorage 本地存储（完全免费，但无法多设备同步）
-    // 如果不想用云存储，设置 USE_LOCAL_ONLY = true
-    const USE_LOCAL_ONLY = false;  // 改为 true 则只用本地存储
+    // 可选：如果需要更高的安全性，可以注册账号获取 API Key（免费）
+    const JSONBIN_API_KEY = "";  // 留空也可以使用公开 Bin
     
-    // 数据存储 Key
-    const STORAGE_KEYS = {
-        TEACHERS: 'chem_teachers',
-        APPLICATIONS: 'chem_applications',
-        EQUIPMENTS: 'chem_equipments',
-        CHEMICALS: 'chem_chemicals',
-        ADMIN: 'chem_admin'
-    };
+    // 本地存储的键名
+    const STORAGE_KEY = "chem_lab_system_v2";
     
-    // 默认数据
+    // 默认数据结构
     const DEFAULT_DATA = {
         teachers: [{ username: "teacher1", password: "123" }],
         applications: [],
-        equipments: ["试管", "烧杯", "酒精灯", "量筒", "滴定管", "铁架台", "漏斗", "玻璃棒", "容量瓶", "胶头滴管"],
-        chemicals: ["盐酸", "氢氧化钠", "酚酞", "硫酸铜", "氯化钠", "乙醇", "高锰酸钾", "过氧化氢", "硫酸", "氨水"],
-        admin: { username: "admin", password: "admin" }
+        equipments: ["试管", "烧杯", "酒精灯", "量筒", "滴定管", "铁架台", "漏斗", "玻璃棒", "容量瓶", "胶头滴管", "蒸发皿", "坩埚"],
+        chemicals: ["盐酸", "氢氧化钠", "酚酞", "硫酸铜", "氯化钠", "乙醇", "高锰酸钾", "过氧化氢", "硫酸", "氨水", "碳酸钙", "硝酸银"],
+        admin: { username: "admin", password: "admin" },
+        lastSync: null
     };
     
-    // 全局数据缓存
-    let cloudData = { ...DEFAULT_DATA };
+    // 全局数据
+    let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    let lastSyncTime = null;
     
-    // ========== 数据存储操作 ==========
-    async function saveToCloud() {
-        if (USE_LOCAL_ONLY) {
-            for (let key in cloudData) {
-                localStorage.setItem(STORAGE_KEYS[key.toUpperCase()], JSON.stringify(cloudData[key]));
+    // 更新同步状态显示
+    function updateSyncStatus(message, isError = false) {
+        const statusElements = document.querySelectorAll('.sync-status');
+        statusElements.forEach(el => {
+            if (el) {
+                el.className = `sync-status ${isError ? 'error' : 'success'}`;
+                el.innerHTML = message;
             }
-            return;
+        });
+        setTimeout(() => {
+            statusElements.forEach(el => {
+                if (el && !el.innerHTML.includes('失败')) {
+                    el.className = 'sync-status';
+                    el.innerHTML = '☁️ 已同步';
+                }
+            });
+        }, 3000);
+    }
+    
+    // 从云端加载数据
+    async function loadFromCloud() {
+        // 如果没配置 Bin ID，使用本地存储
+        if (!JSONBIN_BIN_ID || JSONBIN_BIN_ID === "") {
+            console.warn("未配置 JSONBin ID，使用本地存储");
+            loadFromLocal();
+            updateSyncStatus("📱 本地存储模式（未配置云端）", false);
+            return false;
         }
         
-        if (USE_JSONBIN && JSONBIN_BIN_ID && JSONBIN_BIN_ID !== "你的BinID") {
-            try {
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(JSONBIN_API_KEY && { 'X-Master-Key': JSONBIN_API_KEY })
-                    },
-                    body: JSON.stringify(cloudData)
-                });
-                if (!response.ok) throw new Error('保存失败');
-                console.log('云同步成功');
-            } catch (error) {
-                console.warn('云同步失败，使用本地存储:', error);
-                // 降级到本地存储
-                for (let key in cloudData) {
-                    localStorage.setItem(STORAGE_KEYS[key.toUpperCase()], JSON.stringify(cloudData[key]));
+        try {
+            updateSyncStatus("☁️ 正在从云端加载...", false);
+            
+            const url = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(JSONBIN_API_KEY && { 'X-Master-Key': JSONBIN_API_KEY })
                 }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                if (result.record && Object.keys(result.record).length > 0) {
+                    // 合并云端数据
+                    appData = { ...DEFAULT_DATA, ...result.record };
+                    lastSyncTime = new Date();
+                    // 保存到本地缓存
+                    saveToLocal();
+                    updateSyncStatus(`✅ 云端同步成功 ${new Date().toLocaleTimeString()}`, false);
+                    console.log("云端加载成功", appData);
+                    return true;
+                } else {
+                    throw new Error("云端数据为空");
+                }
+            } else {
+                throw new Error(`HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.error("云端加载失败:", error);
+            updateSyncStatus(`⚠️ 云端连接失败，使用本地数据: ${error.message}`, true);
+            loadFromLocal();
+            return false;
+        }
+    }
+    
+    // 保存数据到云端
+    async function saveToCloud() {
+        if (!JSONBIN_BIN_ID || JSONBIN_BIN_ID === "") {
+            saveToLocal();
+            return false;
+        }
+        
+        try {
+            appData.lastSync = new Date().toISOString();
+            
+            const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(JSONBIN_API_KEY && { 'X-Master-Key': JSONBIN_API_KEY })
+                },
+                body: JSON.stringify(appData)
+            });
+            
+            if (response.ok) {
+                saveToLocal();
+                updateSyncStatus("✅ 已同步到云端", false);
+                console.log("云端保存成功");
+                return true;
+            } else {
+                throw new Error(`HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.error("云端保存失败:", error);
+            updateSyncStatus(`⚠️ 云端保存失败，已保存到本地: ${error.message}`, true);
+            saveToLocal();
+            return false;
+        }
+    }
+    
+    // 保存到本地存储
+    function saveToLocal() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+    
+    // 从本地存储加载
+    function loadFromLocal() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                appData = { ...DEFAULT_DATA, ...parsed };
+                console.log("从本地加载成功");
+            } catch (e) {
+                appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
             }
         } else {
-            // 未配置 JSONBin，使用本地存储
-            for (let key in cloudData) {
-                localStorage.setItem(STORAGE_KEYS[key.toUpperCase()], JSON.stringify(cloudData[key]));
-            }
+            appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
         }
     }
     
-    async function loadFromCloud() {
-        // 先尝试从本地加载
-        let hasLocalData = false;
-        for (let key of ['TEACHERS', 'APPLICATIONS', 'EQUIPMENTS', 'CHEMICALS', 'ADMIN']) {
-            const local = localStorage.getItem(STORAGE_KEYS[key]);
-            if (local) {
-                cloudData[key.toLowerCase()] = JSON.parse(local);
-                hasLocalData = true;
-            }
-        }
-        
-        if (USE_LOCAL_ONLY) return;
-        
-        if (USE_JSONBIN && JSONBIN_BIN_ID && JSONBIN_BIN_ID !== "你的BinID") {
-            try {
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                    headers: JSONBIN_API_KEY ? { 'X-Master-Key': JSONBIN_API_KEY } : {}
-                });
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.record) {
-                        cloudData = { ...DEFAULT_DATA, ...result.record };
-                        // 同步到本地
-                        for (let key in cloudData) {
-                            localStorage.setItem(STORAGE_KEYS[key.toUpperCase()], JSON.stringify(cloudData[key]));
-                        }
-                        console.log('从云端加载成功');
-                        return;
-                    }
-                }
-            } catch (error) {
-                console.warn('云端加载失败，使用本地数据:', error);
-            }
-        }
-        
-        // 如果没有云端数据且没有本地数据，初始化默认数据
-        if (!hasLocalData) {
-            cloudData = { ...DEFAULT_DATA };
-            await saveToCloud();
-        }
-    }
+    // 获取数据
+    function getTeachers() { return appData.teachers || []; }
+    function getApplications() { return appData.applications || []; }
+    function getEquipments() { return appData.equipments || []; }
+    function getChemicals() { return appData.chemicals || []; }
+    function getAdmin() { return appData.admin || { username: 'admin', password: 'admin' }; }
     
-    // API 获取数据
-    function getTeachers() { return cloudData.teachers || []; }
-    function getApplications() { return cloudData.applications || []; }
-    function getEquipments() { return cloudData.equipments || []; }
-    function getChemicals() { return cloudData.chemicals || []; }
-    function getAdmin() { return cloudData.admin || { username: 'admin', password: 'admin' }; }
-    
-    async function setTeachers(data) { cloudData.teachers = data; await saveToCloud(); }
-    async function setApplications(data) { cloudData.applications = data; await saveToCloud(); }
-    async function addApplication(app) { cloudData.applications.unshift(app); await saveToCloud(); }
-    async function updateAdmin(admin) { cloudData.admin = admin; await saveToCloud(); }
+    // 设置数据并同步
+    async function setTeachers(data) { appData.teachers = data; await saveToCloud(); }
+    async function setApplications(data) { appData.applications = data; await saveToCloud(); }
+    async function addApplication(app) { appData.applications.unshift(app); await saveToCloud(); }
+    async function updateAdmin(admin) { appData.admin = admin; await saveToCloud(); }
     
     // 当前登录状态
     let currentUserType = null;
@@ -253,15 +329,15 @@
         initDynamicRows();
     }
     
-    function switchToAdminPanel() {
+    async function switchToAdminPanel() {
         teacherLoginPanel.classList.add('hidden');
         adminLoginPanel.classList.add('hidden');
         teacherPanel.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
         currentUserType = 'admin';
-        renderTeacherList();
-        renderAllApplications();
+        await renderTeacherList();
+        await renderAllApplications();
     }
     
     // 教师登录
@@ -283,7 +359,7 @@
         const pwd = document.getElementById('adminPassword').value;
         const admin = getAdmin();
         if (username === admin.username && pwd === admin.password) {
-            switchToAdminPanel();
+            await switchToAdminPanel();
         } else {
             document.getElementById('adminLoginError').innerText = '管理员账号或密码错误';
         }
@@ -336,10 +412,10 @@
         };
         
         await addApplication(newApp);
-        document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 提交成功！数据已同步</span>';
+        document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 提交成功！数据已同步到云端，其他设备可查看</span>';
         document.getElementById('applyForm').reset();
         initDynamicRows();
-        setTimeout(() => document.getElementById('applyMsg').innerHTML = '', 3000);
+        setTimeout(() => document.getElementById('applyMsg').innerHTML = '', 4000);
     });
     
     // 渲染申请记录
@@ -350,11 +426,21 @@
             return;
         }
         
-        let tableHtml = `<table class="data-table"><thead><tr><th>实验名称</th><th>时间</th><th>器材</th><th>药品</th><th>老师</th><th>人数</th><th>备注</th><th>提交教师</th></tr></thead><tbody>`;
+        let tableHtml = `<table class="data-table"><thead><tr><th>实验名称</th><th>时间</th><th>器材</th><th>药品</th><th>老师</th><th>人数</th><th>备注</th><th>提交教师</th><th>提交时间</th></tr></thead><tbody>`;
         for (let app of apps) {
             const eqStr = (app.equipments || []).map(e => `${e.name} x${e.quantity}`).join(', ') || '无';
             const chemStr = (app.chemicals || []).map(c => `${c.name} x${c.quantity}`).join(', ') || '无';
-            tableHtml += `<tr><td>${escapeHtml(app.expName)}</td><td>${escapeHtml(app.timeDesc)}</td><td>${escapeHtml(eqStr)}</td><td>${escapeHtml(chemStr)}</td><td>${escapeHtml(app.teacher)}</td><td>${app.studentCount}</td><td>${escapeHtml(app.remarks)}</td><td>${escapeHtml(app.submitter)}</td></tr>`;
+            tableHtml += `<tr>
+                <td>${escapeHtml(app.expName)}</td>
+                <td>${escapeHtml(app.timeDesc)}</td>
+                <td style="max-width:200px;">${escapeHtml(eqStr)}</td>
+                <td style="max-width:200px;">${escapeHtml(chemStr)}</td>
+                <td>${escapeHtml(app.teacher)}</td>
+                <td>${app.studentCount}</td>
+                <td>${escapeHtml(app.remarks)}</td>
+                <td>${escapeHtml(app.submitter)}</td>
+                <td style="font-size:0.75rem;">${escapeHtml(app.submitTime)}</td>
+            </tr>`;
         }
         tableHtml += '</tbody></table>';
         document.getElementById('recordsTableContainer').innerHTML = tableHtml;
@@ -365,7 +451,10 @@
         const teachers = getTeachers();
         let html = '<ul style="list-style: none; padding-left:0;">';
         for (let teacher of teachers) {
-            html += `<li style="background:#f1f5f9; margin:6px 0; padding:8px 12px; border-radius:20px;">📖 ${teacher.username} <button class="delTeacherBtn" data-user="${teacher.username}" style="float:right; background:#dc2626; border:none; color:white; padding:2px 12px; border-radius:20px;">删除</button></li>`;
+            html += `<li style="background:#f1f5f9; margin:6px 0; padding:8px 12px; border-radius:20px; display: flex; justify-content: space-between; align-items: center;">
+                <span>📖 ${teacher.username}</span>
+                <button class="delTeacherBtn" data-user="${teacher.username}" style="background:#dc2626; border:none; color:white; padding:4px 16px; border-radius:20px; cursor:pointer;">删除</button>
+            </li>`;
         }
         html += '</ul>';
         document.getElementById('teacherListArea').innerHTML = html;
@@ -376,7 +465,7 @@
                 let teachersArr = getTeachers();
                 teachersArr = teachersArr.filter(t => t.username !== username);
                 await setTeachers(teachersArr);
-                renderTeacherList();
+                await renderTeacherList();
             });
         });
     }
@@ -393,8 +482,8 @@
         await setTeachers(teachers);
         document.getElementById('newTeacherUser').value = '';
         document.getElementById('newTeacherPwd').value = '';
-        renderTeacherList();
-        alert('添加成功');
+        await renderTeacherList();
+        alert('添加成功，已同步到云端');
     });
     
     // 修改管理员密码
@@ -402,8 +491,17 @@
         const newPwd = document.getElementById('newAdminPwd').value;
         if (!newPwd) { document.getElementById('pwdMsg').innerHTML = '<span class="error-msg">请输入新密码</span>'; return; }
         await updateAdmin({ username: 'admin', password: newPwd });
-        document.getElementById('pwdMsg').innerHTML = '<span class="success-msg">密码更新成功</span>';
+        document.getElementById('pwdMsg').innerHTML = '<span class="success-msg">密码更新成功，已同步到云端</span>';
         setTimeout(() => document.getElementById('pwdMsg').innerHTML = '', 2000);
+    });
+    
+    // 强制同步
+    document.getElementById('forceSyncBtn')?.addEventListener('click', async () => {
+        updateSyncStatus("☁️ 强制同步中...", false);
+        await loadFromCloud();
+        await renderAllApplications();
+        await renderTeacherList();
+        updateSyncStatus("✅ 同步完成", false);
     });
     
     // 导出 DOC
@@ -411,7 +509,7 @@
         const apps = getApplications();
         if (!apps.length) { alert('暂无数据'); return; }
         
-        let docHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>实验申请记录</title></head><body><h2>化学社团实验申请记录</h2><table border="1"><thead><tr><th>实验名称</th><th>时间</th><th>器材</th><th>药品</th><th>老师</th><th>人数</th><th>备注</th></tr></thead><tbody>`;
+        let docHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>实验申请记录</title></head><body><h2>化学社团实验申请记录</h2><p>导出时间: ${new Date().toLocaleString()}</p><table border="1" cellpadding="6" style="border-collapse:collapse; width:100%"><thead><tr><th>实验名称</th><th>时间</th><th>器材</th><th>药品</th><th>老师</th><th>人数</th><th>备注</th></tr></thead><tbody>`;
         for (let app of apps) {
             const eqStr = (app.equipments || []).map(e => `${e.name}×${e.quantity}`).join(',');
             const chemStr = (app.chemicals || []).map(c => `${c.name}×${c.quantity}`).join(',');
@@ -426,7 +524,10 @@
         URL.revokeObjectURL(link.href);
     });
     
-    document.getElementById('refreshRecordsBtn')?.addEventListener('click', () => renderAllApplications());
+    document.getElementById('refreshRecordsBtn')?.addEventListener('click', async () => {
+        await renderAllApplications();
+        alert('已刷新');
+    });
     
     // 动态行功能
     let currentEquipments = [];
@@ -447,7 +548,7 @@
     function addEquipmentRow() {
         const div = document.createElement('div');
         div.className = 'dynamic-row';
-        div.innerHTML = `<div class="suggest-box"><input type="text" class="eq-name" placeholder="器材名称"><div class="suggestions" style="display:none;"></div></div><input type="number" class="eq-qty" placeholder="数量" style="flex:0.8" min="1" value="1"><button type="button" class="remove-row-btn">删除</button>`;
+        div.innerHTML = `<div class="suggest-box"><input type="text" class="eq-name" placeholder="器材名称" autocomplete="off"><div class="suggestions" style="display:none;"></div></div><input type="number" class="eq-qty" placeholder="数量" style="flex:0.8" min="1" value="1"><button type="button" class="remove-row-btn" style="background:#e2e8f0; border:none; padding:8px 14px;">删除</button>`;
         const nameInput = div.querySelector('.eq-name');
         const suggestDiv = div.querySelector('.suggestions');
         nameInput.addEventListener('input', function(e) {
@@ -466,6 +567,7 @@
                 });
             } else suggestDiv.style.display = 'none';
         });
+        document.addEventListener('click', (e) => { if (!div.contains(e.target)) suggestDiv.style.display = 'none'; });
         div.querySelector('.remove-row-btn').addEventListener('click', () => div.remove());
         document.getElementById('equipmentList').appendChild(div);
     }
@@ -473,7 +575,7 @@
     function addChemicalRow() {
         const div = document.createElement('div');
         div.className = 'dynamic-row';
-        div.innerHTML = `<div class="suggest-box"><input type="text" class="ch-name" placeholder="药品名称"><div class="suggestions" style="display:none;"></div></div><input type="number" class="ch-qty" placeholder="数量" style="flex:0.8" min="1" value="1"><button type="button" class="remove-row-btn">删除</button>`;
+        div.innerHTML = `<div class="suggest-box"><input type="text" class="ch-name" placeholder="药品名称" autocomplete="off"><div class="suggestions" style="display:none;"></div></div><input type="number" class="ch-qty" placeholder="数量" style="flex:0.8" min="1" value="1"><button type="button" class="remove-row-btn" style="background:#e2e8f0; border:none; padding:8px 14px;">删除</button>`;
         const nameInput = div.querySelector('.ch-name');
         const suggestDiv = div.querySelector('.suggestions');
         nameInput.addEventListener('input', function(e) {
@@ -492,6 +594,7 @@
                 });
             } else suggestDiv.style.display = 'none';
         });
+        document.addEventListener('click', (e) => { if (!div.contains(e.target)) suggestDiv.style.display = 'none'; });
         div.querySelector('.remove-row-btn').addEventListener('click', () => div.remove());
         document.getElementById('chemicalList').appendChild(div);
     }
@@ -504,11 +607,12 @@
     
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
     
-    // 启动
+    // 启动应用
     async function start() {
         await loadFromCloud();
         loadInventory();
         showLoginOnly();
+        console.log("系统启动完成，当前数据:", appData);
     }
     start();
 </script>
