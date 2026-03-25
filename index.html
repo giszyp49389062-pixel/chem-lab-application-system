@@ -32,7 +32,7 @@
         .suggest-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
         .suggest-item:hover { background: #eef2ff; }
         .data-table { width: 100%; border-collapse: collapse; }
-        .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.85rem; vertical-align: top; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.85rem; vertical-align: middle; }
         .data-table th { background: #f1f5f9; position: sticky; top: 0; }
         .table-wrapper { overflow-x: auto; margin: 20px 0; max-height: 500px; overflow-y: auto; }
         .admin-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -45,17 +45,25 @@
         .success-msg { color: #10b981; }
         .sync-status { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; background: #e2e8f0; color: #1e293b; margin-bottom: 15px; }
         .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .history-table th, .history-table td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 0.85rem; vertical-align: top; }
+        .history-table th, .history-table td { border: 1px solid #e2e8f0; padding: 10px; text-align: center; font-size: 0.85rem; vertical-align: middle; }
         .history-table th { background: #f1f5f9; font-weight: 600; }
         .history-table tr:hover { background: #f8fafc; }
-        .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-        .action-buttons button { padding: 4px 12px; font-size: 0.75rem; border-radius: 8px; cursor: pointer; }
-        .edit-history-btn { background: #ffb347; color: white; border: none; }
-        .delete-history-btn { background: #dc2626; color: white; border: none; }
+        .action-buttons { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+        .action-buttons button { padding: 6px 16px; font-size: 0.75rem; border-radius: 8px; cursor: pointer; border: none; }
+        .edit-history-btn { background: #ffb347; color: white; }
+        .delete-history-btn { background: #dc2626; color: white; }
         .back-button { margin-top: 10px; background: #e2e8f0; color: #1e293b; border: none; }
-        .equipment-list, .chemical-list { margin: 0; padding-left: 15px; }
-        .equipment-list li, .chemical-list li { margin-bottom: 4px; }
-        @media (max-width: 640px) { .panel { padding: 20px 16px; } .dynamic-row { flex-direction: column; } .history-table { font-size: 0.7rem; } .history-table th, .history-table td { padding: 6px; } }
+        .equipment-list, .chemical-list { margin: 0; padding-left: 0; list-style: none; }
+        .equipment-list li, .chemical-list li { margin-bottom: 4px; text-align: center; }
+        .time-input-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        .time-input-group input, .time-input-group select { flex: 1; min-width: 0; }
+        @media (max-width: 640px) { 
+            .panel { padding: 20px 16px; } 
+            .dynamic-row { flex-direction: column; } 
+            .history-table { font-size: 0.7rem; } 
+            .history-table th, .history-table td { padding: 6px; }
+            .time-input-group { flex-direction: column; }
+        }
     </style>
 </head>
 <body>
@@ -122,13 +130,13 @@
                 </div>
                 <div class="form-group">
                     <label>申请时间 *</label>
-                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <input type="number" id="weekNum" placeholder="第几周 (1-20)" style="width:100px;" required min="1" max="20">
-                        <select id="weekDay">
+                    <div class="time-input-group">
+                        <input type="number" id="weekNum" placeholder="第几周" style="flex:1;" required min="1" max="20">
+                        <select id="weekDay" style="flex:1;">
                             <option>星期一</option><option>星期二</option><option>星期三</option><option>星期四</option>
                             <option>星期五</option><option>星期六</option><option>星期日</option>
                         </select>
-                        <input type="text" id="timeRange" placeholder="时间范围 (如 14:00-16:00)" required>
+                        <input type="text" id="timeRange" placeholder="8-18" style="flex:1;" required>
                     </div>
                 </div>
                 <div class="form-group">
@@ -428,9 +436,9 @@
     // 渲染器材列表为HTML
     function renderEquipmentList(equipments) {
         if (!equipments || equipments.length === 0) return '无';
-        let html = '<ul class="equipment-list" style="margin:0; padding-left:15px;">';
+        let html = '<ul class="equipment-list">';
         equipments.forEach(eq => {
-            html += `<li>${escapeHtml(eq.name)} | ${eq.quantity} | ${eq.unit || '个'}</li>`;
+            html += `<li>${escapeHtml(eq.name)}<br>${eq.quantity} ${eq.unit || '个'}</li>`;
         });
         html += '</ul>';
         return html;
@@ -439,15 +447,15 @@
     // 渲染药品列表为HTML
     function renderChemicalList(chemicals) {
         if (!chemicals || chemicals.length === 0) return '无';
-        let html = '<ul class="chemical-list" style="margin:0; padding-left:15px;">';
+        let html = '<ul class="chemical-list">';
         chemicals.forEach(ch => {
-            html += `<li>${escapeHtml(ch.name)} | ${ch.quantity} | ${ch.unit || '克'}</li>`;
+            html += `<li>${escapeHtml(ch.name)}<br>${ch.quantity} ${ch.unit || '克'}</li>`;
         });
         html += '</ul>';
         return html;
     }
     
-    // 渲染历史申请记录 - 优化列结构
+    // 渲染历史申请记录 - 优化列结构，所有文字居中
     async function renderHistoryTable() {
         const apps = getApplications();
         const myApps = apps.filter(a => a.submitter === currentTeacherName);
@@ -462,21 +470,19 @@
             <table class="history-table">
                 <thead>
                     <tr>
-                        <th>实验名称</th>
+                        <th rowspan="2">实验名称</th>
                         <th colspan="3">申请时间</th>
                         <th colspan="3">器材</th>
                         <th colspan="3">药品</th>
-                        <th>社团老师</th>
-                        <th>学生人数</th>
-                        <th>备注</th>
-                        <th>操作</th>
+                        <th rowspan="2">社团老师</th>
+                        <th rowspan="2">学生人数</th>
+                        <th rowspan="2">备注</th>
+                        <th rowspan="2">操作</th>
                     </tr>
                     <tr style="background:#f8fafc;">
-                        <th></th>
                         <th>第几周</th><th>星期几</th><th>时间</th>
                         <th>名称</th><th>数量</th><th>单位</th>
                         <th>名称</th><th>数量</th><th>单位</th>
-                        <th></th><th></th><th></th><th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -495,10 +501,10 @@
                 
                 // 第一行显示实验名称，后续行合并
                 if (i === 0) {
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.expName)}</td>`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.week)}</td>`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.day)}</td>`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.time)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(app.expName)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(timeInfo.week)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(timeInfo.day)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(timeInfo.time)}</td>`;
                 }
                 
                 // 器材信息
@@ -521,12 +527,14 @@
                 
                 // 其他信息只在第一行显示
                 if (i === 0) {
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.teacher)}</td>`;
-                    tableHtml += `<td rowspan="${maxRows}">${app.studentCount}</td>`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.remarks || '')}</td>`;
-                    tableHtml += `<td rowspan="${maxRows}" class="action-buttons">
-                        <button class="edit-history-btn" data-id="${app.id}">✏️ 修改</button>
-                        <button class="delete-history-btn" data-id="${app.id}">🗑️ 删除</button>
+                    tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(app.teacher)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${app.studentCount}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(app.remarks || '')}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">
+                        <div class="action-buttons">
+                            <button class="edit-history-btn" data-id="${app.id}">✏️ 修改</button>
+                            <button class="delete-history-btn" data-id="${app.id}">🗑️ 删除</button>
+                        </div>
                     </td>`;
                 }
                 
@@ -708,7 +716,7 @@
             const eqStr = (app.equipments || []).map(e => `${e.name}(${e.quantity}${e.unit || ''})`).join(', ') || '无';
             const chemStr = (app.chemicals || []).map(c => `${c.name}(${c.quantity}${c.unit || ''})`).join(', ') || '无';
             const isChecked = selectedForDelete.has(app.id);
-            tableHtml += `<tr>
+            tableHtml += `<tr style="text-align:center;">
                 <td><input type="checkbox" class="record-checkbox" data-id="${app.id}" ${isChecked ? 'checked' : ''}></td>
                 <td>${escapeHtml(app.expName)}</td>
                 <td>${escapeHtml(timeInfo.week)}</td>
@@ -721,9 +729,9 @@
                 <td>${escapeHtml(app.remarks)}</td>
                 <td>${escapeHtml(app.submitter)}</td>
                 <td><button class="delete-single" data-id="${app.id}" style="background:#dc2626; padding:4px 12px; color:white; border:none; border-radius:8px; cursor:pointer;">删除</button></td>
-             </tr>`;
+            </tr>`;
         }
-        tableHtml += '</tbody></table>';
+        tableHtml += '</tbody> </table>';
         document.getElementById('recordsTableContainer').innerHTML = tableHtml;
         
         // 绑定复选框事件
