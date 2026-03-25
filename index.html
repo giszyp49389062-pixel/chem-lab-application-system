@@ -26,12 +26,12 @@
         .dynamic-row input { flex: 2; }
         .dynamic-row input.qty { flex: 0.8; min-width: 80px; }
         .dynamic-row select.unit { flex: 0.6; min-width: 80px; }
-        .add-btn { background: #e9f0f5; border: 1px dashed #5b7a9a; margin-top: 8px; display: inline-block; color: #2c3e66; cursor: pointer; }
+        .add-btn { background: #e9f0f5; border: 1px dashed #5b7a9a; margin-top: 8px; display: inline-block; color: #2c3e66; cursor: pointer; padding: 8px 20px; border-radius: 40px; }
         .suggest-box { position: relative; flex: 2; }
         .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 12px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .suggest-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
         .suggest-item:hover { background: #eef2ff; }
-        .data-table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; }
         .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.85rem; }
         .data-table th { background: #f1f5f9; position: sticky; top: 0; }
         .table-wrapper { overflow-x: auto; margin: 20px 0; max-height: 500px; overflow-y: auto; }
@@ -44,15 +44,16 @@
         .error-msg { color: #dc2626; font-size: 0.85rem; margin-top: 5px; }
         .success-msg { color: #10b981; }
         .sync-status { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; background: #e2e8f0; color: #1e293b; margin-bottom: 15px; }
-        .history-item { background: #f8fafc; border-left: 4px solid #ffb347; padding: 12px; margin-bottom: 12px; border-radius: 12px; }
-        .history-item h4 { margin-bottom: 8px; color: #2c3e66; }
-        .history-actions { margin-top: 10px; display: flex; gap: 10px; }
-        .history-actions button { padding: 4px 12px; font-size: 0.8rem; cursor: pointer; }
-        .batch-export { background: #10b981; color: white; border: none; }
-        .back-button { margin-bottom: 20px; background: #e2e8f0; color: #1e293b; border: none; }
-        .login-hint { margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 12px; font-size: 0.9rem; color: #475569; }
-        .login-hint strong { color: #2c3e66; }
-        @media (max-width: 640px) { .panel { padding: 20px 16px; } .dynamic-row { flex-direction: column; } }
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .history-table th, .history-table td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 0.85rem; }
+        .history-table th { background: #f1f5f9; font-weight: 600; }
+        .history-table tr:hover { background: #f8fafc; }
+        .action-buttons { display: flex; gap: 8px; }
+        .action-buttons button { padding: 4px 12px; font-size: 0.75rem; border-radius: 8px; cursor: pointer; }
+        .edit-history-btn { background: #ffb347; color: white; border: none; }
+        .delete-history-btn { background: #dc2626; color: white; border: none; }
+        .back-button { margin-top: 10px; background: #e2e8f0; color: #1e293b; border: none; }
+        @media (max-width: 640px) { .panel { padding: 20px 16px; } .dynamic-row { flex-direction: column; } .history-table { font-size: 0.7rem; } }
     </style>
 </head>
 <body>
@@ -79,9 +80,6 @@
         </div>
         <button id="doTeacherLogin" class="primary">登录</button>
         <div id="teacherLoginError" class="error-msg"></div>
-        <div class="login-hint">
-            📌 默认教师账号：<strong>teacher1</strong> / 密码：<strong>123</strong>
-        </div>
     </div>
 
     <!-- 管理员登录界面 -->
@@ -97,9 +95,6 @@
         </div>
         <button id="doAdminLogin" class="primary">登录</button>
         <div id="adminLoginError" class="error-msg"></div>
-        <div class="login-hint">
-            📌 默认管理员：<strong>admin</strong> / 密码：<strong>admin</strong>
-        </div>
     </div>
 
     <!-- 教师主界面 -->
@@ -107,10 +102,12 @@
         <div id="syncStatusTeacher" class="sync-status">☁️ 已连接云端</div>
         <h3>👋 欢迎，<span id="currentTeacherName"></span></h3>
         
-        <!-- 历史申请记录 -->
+        <!-- 历史申请记录 - 表格形式 -->
         <div id="historySection" class="card">
             <h4>📋 我的历史申请记录</h4>
-            <div id="historyList" style="max-height: 300px; overflow-y: auto;"></div>
+            <div class="table-wrapper" id="historyTableContainer">
+                <div style="text-align:center; padding:40px;">加载中...</div>
+            </div>
         </div>
         
         <!-- 申请表单区域 -->
@@ -235,7 +232,7 @@
     let currentUserType = null;
     let currentTeacherName = null;
     let selectedForDelete = new Set();
-    let editingAppId = null; // 正在编辑的申请ID
+    let editingAppId = null;
     
     // DOM 元素
     const teacherLoginPanel = document.getElementById('teacherLoginPanel');
@@ -319,7 +316,7 @@
         else appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
     }
     
-    // 保存当前状态到 localStorage（用于刷新后恢复）
+    // 保存当前状态
     function saveCurrentState() {
         if (currentUserType === 'teacher') {
             localStorage.setItem('currentState', JSON.stringify({
@@ -336,7 +333,7 @@
         }
     }
     
-    // 恢复之前状态
+    // 恢复状态
     async function restoreState() {
         const saved = localStorage.getItem('currentState');
         if (saved) {
@@ -388,7 +385,7 @@
         document.getElementById('cancelEditBtn').classList.add('hidden');
         resetForm();
         initDynamicRows();
-        await renderHistoryList();
+        await renderHistoryTable();
         saveCurrentState();
     }
     
@@ -417,50 +414,70 @@
         document.getElementById('remarks').value = '';
     }
     
-    // 渲染教师的历史申请
-    async function renderHistoryList() {
+    // 渲染历史申请记录 - 表格形式
+    async function renderHistoryTable() {
         const apps = getApplications();
         const myApps = apps.filter(a => a.submitter === currentTeacherName);
-        const historyDiv = document.getElementById('historyList');
+        const container = document.getElementById('historyTableContainer');
         
         if (myApps.length === 0) {
-            historyDiv.innerHTML = '<p style="color: #666;">暂无历史申请记录</p>';
+            container.innerHTML = '<p style="text-align:center; padding:40px; color:#666;">暂无历史申请记录</p>';
             return;
         }
         
-        let html = '';
+        let tableHtml = `
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>实验名称</th>
+                        <th>申请时间</th>
+                        <th>器材</th>
+                        <th>药品</th>
+                        <th>社团老师</th>
+                        <th>学生人数</th>
+                        <th>备注</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
         for (let app of myApps) {
             const eqStr = (app.equipments || []).map(e => `${e.name} ${e.quantity}${e.unit || ''}`).join(', ') || '无';
             const chemStr = (app.chemicals || []).map(c => `${c.name} ${c.quantity}${c.unit || ''}`).join(', ') || '无';
-            html += `
-                <div class="history-item">
-                    <h4>📌 ${escapeHtml(app.expName)}</h4>
-                    <p><strong>时间：</strong>${escapeHtml(app.timeDesc)}</p>
-                    <p><strong>器材：</strong>${escapeHtml(eqStr)}</p>
-                    <p><strong>药品：</strong>${escapeHtml(chemStr)}</p>
-                    <p><strong>老师：</strong>${escapeHtml(app.teacher)} | <strong>人数：</strong>${app.studentCount}</p>
-                    <div class="history-actions">
-                        <button class="edit-btn" data-id="${app.id}" style="background:#ffb347; color:white;">✏️ 修改</button>
-                        <button class="delete-btn" data-id="${app.id}" style="background:#dc2626; color:white;">🗑️ 删除</button>
-                    </div>
-                </div>
+            tableHtml += `
+                <tr>
+                    <td>${escapeHtml(app.expName)}</td>
+                    <td>${escapeHtml(app.timeDesc)}</td>
+                    <td style="max-width:200px;">${escapeHtml(eqStr)}</td>
+                    <td style="max-width:200px;">${escapeHtml(chemStr)}</td>
+                    <td>${escapeHtml(app.teacher)}</td>
+                    <td>${app.studentCount}</td>
+                    <td>${escapeHtml(app.remarks || '')}</td>
+                    <td class="action-buttons">
+                        <button class="edit-history-btn" data-id="${app.id}">✏️ 修改</button>
+                        <button class="delete-history-btn" data-id="${app.id}">🗑️ 删除</button>
+                    </td>
+                </tr>
             `;
         }
-        historyDiv.innerHTML = html;
+        
+        tableHtml += '</tbody></table>';
+        container.innerHTML = tableHtml;
         
         // 绑定修改和删除事件
-        document.querySelectorAll('.edit-btn').forEach(btn => {
+        document.querySelectorAll('.edit-history-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = parseInt(btn.getAttribute('data-id'));
                 await editApplication(id);
             });
         });
-        document.querySelectorAll('.delete-btn').forEach(btn => {
+        document.querySelectorAll('.delete-history-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 if (confirm('确定要删除这条申请记录吗？')) {
                     const id = parseInt(btn.getAttribute('data-id'));
                     await deleteApplication(id);
-                    await renderHistoryList();
+                    await renderHistoryTable();
                     if (currentUserType === 'admin') await renderAllApplications();
                     alert('删除成功');
                 }
@@ -510,6 +527,9 @@
         if ((app.chemicals || []).length === 0) addChemicalRow();
         
         saveCurrentState();
+        
+        // 滚动到表单区域
+        document.getElementById('formSection').scrollIntoView({ behavior: 'smooth' });
     }
     
     // 取消修改
@@ -592,7 +612,7 @@
         
         // 返回主页面（取消编辑模式）
         cancelEdit();
-        await renderHistoryList();
+        await renderHistoryTable();
         
         setTimeout(() => document.getElementById('applyMsg').innerHTML = '', 3000);
         return true;
@@ -689,9 +709,9 @@
         for (let app of apps) {
             const eqStr = (app.equipments || []).map(e => `${e.name}×${e.quantity}${e.unit || ''}`).join(',');
             const chemStr = (app.chemicals || []).map(c => `${c.name}×${c.quantity}${c.unit || ''}`).join(',');
-            docHtml += `<tr><td>${app.expName}</td><td>${app.timeDesc}</td><td>${eqStr}</td><td>${chemStr}</td><td>${app.teacher}</td><td>${app.studentCount}</td><td>${app.remarks || ''}</td></tr>`;
+            docHtml += `<tr><td>${app.expName}</td><td>${app.timeDesc}</td><td>${eqStr}</td><td>${chemStr}</td><td>${app.teacher}</td><td>${app.studentCount}NonNull<td>${app.remarks || ''}</td> </tr>`;
         }
-        docHtml += `</tbody></table></body></html>`;
+        docHtml += `</tbody> </table></body></html>`;
         const blob = new Blob([docHtml], { type: 'application/msword' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -724,7 +744,7 @@
         });
     }
     
-    // 动态行（带单位）
+    // 动态行
     let currentEquipments = [], currentChemicals = [];
     function loadInventory() {
         currentEquipments = getEquipments();
@@ -803,7 +823,7 @@
         });
     });
     
-    // 登录和按钮事件
+    // 登录事件
     document.getElementById('doTeacherLogin').addEventListener('click', async () => {
         const username = document.getElementById('teacherUsername').value.trim();
         const pwd = document.getElementById('teacherPassword').value.trim();
