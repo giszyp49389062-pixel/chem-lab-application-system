@@ -35,7 +35,7 @@
         .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.85rem; vertical-align: middle; }
         .data-table th { background: #f1f5f9; position: sticky; top: 0; }
         .table-wrapper { overflow-x: auto; margin: 20px 0; max-height: 500px; overflow-y: auto; }
-        .admin-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+        .admin-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
         .card { background: #f8fafc; border-radius: 20px; padding: 16px; margin-bottom: 20px; }
         .collapse-header { cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #e2e8f0; border-radius: 12px; margin-bottom: 10px; }
         .collapse-header:hover { background: #cbd5e1; }
@@ -60,6 +60,13 @@
         .time-input-group { display: flex; gap: 12px; flex-wrap: wrap; }
         .time-input-group input, .time-input-group select { flex: 1; min-width: 0; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .export-select-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .export-modal-content { background: white; padding: 30px; border-radius: 20px; max-width: 400px; width: 90%; text-align: center; }
+        .export-modal-content h3 { margin-bottom: 20px; color: #2c3e66; }
+        .export-modal-content button { margin: 10px; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; }
+        .export-excel-btn { background: #10b981; color: white; }
+        .export-word-btn { background: #3b82f6; color: white; }
+        .export-cancel-btn { background: #e2e8f0; color: #1e293b; }
         @media (max-width: 640px) { 
             .panel { padding: 20px 16px; } 
             .dynamic-row { flex-direction: column; } 
@@ -223,7 +230,7 @@
             <h4>📄 实验申请记录管理</h4>
             <div class="admin-actions">
                 <button id="batchDeleteBtn" class="danger">🗑️ 批量删除</button>
-                <button id="batchExportBtn" class="batch-export">📎 批量导出 (DOC)</button>
+                <button id="batchExportBtn" class="success">📎 批量导出</button>
                 <button id="refreshRecordsBtn">🔄 刷新列表</button>
                 <button id="forceSyncBtn">☁️ 强制同步</button>
             </div>
@@ -471,11 +478,10 @@
         return { week: '-', day: '-', time: timeDesc };
     }
     
-    // 渲染历史申请记录 - 按时间倒序（最近一次在前）
+    // 渲染历史申请记录
     async function renderHistoryTable() {
         const apps = getApplications();
         const myApps = apps.filter(a => a.submitter === currentTeacherName);
-        // 按创建时间倒序排序（最近一次在前）
         myApps.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const container = document.getElementById('historyTableContainer');
         
@@ -510,14 +516,10 @@
             const timeInfo = parseTimeDesc(app.timeDesc);
             const equipments = app.equipments || [];
             const chemicals = app.chemicals || [];
-            
-            // 获取最大行数用于合并
             const maxRows = Math.max(equipments.length || 1, chemicals.length || 1);
             
             for (let i = 0; i < maxRows; i++) {
                 tableHtml += `<tr>`;
-                
-                // 第一行显示实验名称，后续行合并
                 if (i === 0) {
                     tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(app.expName)}</td>`;
                     tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(timeInfo.week)}</td>`;
@@ -525,7 +527,6 @@
                     tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(timeInfo.time)}</td>`;
                 }
                 
-                // 器材信息
                 if (i < equipments.length) {
                     tableHtml += `<td>${escapeHtml(equipments[i].name)}</td>`;
                     tableHtml += `<td>${escapeHtml(equipments[i].quantity)}</td>`;
@@ -534,7 +535,6 @@
                     tableHtml += `<td colspan="3"></td>`;
                 }
                 
-                // 药品信息
                 if (i < chemicals.length) {
                     tableHtml += `<td>${escapeHtml(chemicals[i].name)}</td>`;
                     tableHtml += `<td>${escapeHtml(chemicals[i].quantity)}</td>`;
@@ -543,7 +543,6 @@
                     tableHtml += `<td colspan="3"></td>`;
                 }
                 
-                // 其他信息只在第一行显示
                 if (i === 0) {
                     tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${escapeHtml(app.teacher)}</td>`;
                     tableHtml += `<td rowspan="${maxRows}" style="vertical-align: middle;">${app.studentCount}</td>`;
@@ -555,15 +554,12 @@
                         </div>
                     </td>`;
                 }
-                
                 tableHtml += `</tr>`;
             }
         }
-        
         tableHtml += '</tbody></table>';
         container.innerHTML = tableHtml;
         
-        // 绑定修改和删除事件
         document.querySelectorAll('.edit-history-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = parseInt(btn.getAttribute('data-id'));
@@ -589,11 +585,8 @@
         if (!app) return;
         
         editingAppId = id;
-        
-        // 显示表单页面
         showTeacherFormPanel(true, id);
         
-        // 填充表单
         document.getElementById('expName').value = app.expName;
         const timeInfo = parseTimeDesc(app.timeDesc);
         document.getElementById('weekNum').value = timeInfo.week;
@@ -603,7 +596,6 @@
         document.getElementById('studentCount').value = app.studentCount;
         document.getElementById('remarks').value = app.remarks || '';
         
-        // 清空并重新填充器材和药品
         const eqDiv = document.getElementById('equipmentList');
         const chDiv = document.getElementById('chemicalList');
         eqDiv.innerHTML = '';
@@ -654,7 +646,6 @@
         });
         
         if (editingAppId) {
-            // 修改模式
             const newApp = {
                 id: editingAppId,
                 expName,
@@ -671,7 +662,6 @@
             await updateApplication(editingAppId, newApp);
             document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 修改成功！</span>';
         } else {
-            // 新建模式
             const newApp = {
                 id: Date.now(),
                 expName,
@@ -689,7 +679,6 @@
             document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 提交成功！</span>';
         }
         
-        // 返回主页面
         setTimeout(() => {
             backToMainPage();
         }, 1000);
@@ -697,7 +686,7 @@
         return true;
     }
     
-    // 渲染所有申请记录（管理员）
+    // 渲染所有申请记录（管理员）- 优化表格结构
     async function renderAllApplications() {
         const apps = getApplications();
         if (apps.length === 0) {
@@ -705,34 +694,78 @@
             return;
         }
         
-        let tableHtml = `<table class="data-table"><thead><tr>
-            <th><input type="checkbox" id="selectAllCheckbox"></th>
-            <th>实验名称</th><th>第几周</th><th>星期几</th><th>时间</th>
-            <th>器材(名称/数量/单位)</th><th>药品(名称/数量/单位)</th>
-            <th>老师</th><th>人数</th><th>备注</th><th>提交教师</th><th>操作</th>
-        </tr></thead><tbody>`;
+        let tableHtml = `<table class="data-table"><thead>`;
+        
+        // 第一行表头 - 合并单元格
+        tableHtml += `<tr>
+            <th rowspan="2"><input type="checkbox" id="selectAllCheckbox"></th>
+            <th rowspan="2">实验名称</th>
+            <th colspan="3">申请时间</th>
+            <th colspan="3">器材</th>
+            <th colspan="3">药品</th>
+            <th rowspan="2">社团老师</th>
+            <th rowspan="2">学生人数</th>
+            <th rowspan="2">备注</th>
+            <th rowspan="2">提交教师</th>
+            <th rowspan="2">操作</th>
+         </tr>`;
+        
+        // 第二行表头 - 子列
+        tableHtml += `<tr>
+            <th>第几周</th><th>星期几</th><th>时间</th>
+            <th>名称</th><th>数量</th><th>单位</th>
+            <th>名称</th><th>数量</th><th>单位</th>
+         </tr></thead><tbody>`;
         
         for (let app of apps) {
             const timeInfo = parseTimeDesc(app.timeDesc);
-            const eqStr = (app.equipments || []).map(e => `${e.name}(${e.quantity}${e.unit || ''})`).join(', ') || '无';
-            const chemStr = (app.chemicals || []).map(c => `${c.name}(${c.quantity}${c.unit || ''})`).join(', ') || '无';
+            const equipments = app.equipments || [];
+            const chemicals = app.chemicals || [];
+            const maxRows = Math.max(equipments.length || 1, chemicals.length || 1);
             const isChecked = selectedForDelete.has(app.id);
-            tableHtml += `<tr style="text-align:center;">
-                <td><input type="checkbox" class="record-checkbox" data-id="${app.id}" ${isChecked ? 'checked' : ''}></td>
-                <td>${escapeHtml(app.expName)}</td>
-                <td>${escapeHtml(timeInfo.week)}</td>
-                <td>${escapeHtml(timeInfo.day)}</td>
-                <td>${escapeHtml(timeInfo.time)}</td>
-                <td style="max-width:200px;">${escapeHtml(eqStr)}</td>
-                <td style="max-width:200px;">${escapeHtml(chemStr)}</td>
-                <td>${escapeHtml(app.teacher)}</td>
-                <td>${app.studentCount}</td>
-                <td>${escapeHtml(app.remarks)}</td>
-                <td>${escapeHtml(app.submitter)}</td>
-                <td><button class="delete-single" data-id="${app.id}" style="background:#dc2626; padding:4px 12px; color:white; border:none; border-radius:8px; cursor:pointer;">删除</button></td>
-             </tr>`;
+            
+            for (let i = 0; i < maxRows; i++) {
+                tableHtml += `<tr style="text-align:center;">`;
+                
+                if (i === 0) {
+                    tableHtml += `<td rowspan="${maxRows}"><input type="checkbox" class="record-checkbox" data-id="${app.id}" ${isChecked ? 'checked' : ''}>`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.expName)}`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.week)}`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.day)}`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.time)}`;
+                }
+                
+                // 器材信息
+                if (i < equipments.length) {
+                    tableHtml += `<td>${escapeHtml(equipments[i].name)}`;
+                    tableHtml += `<td>${escapeHtml(equipments[i].quantity)}`;
+                    tableHtml += `<td>${escapeHtml(equipments[i].unit || '个')}`;
+                } else {
+                    tableHtml += `<td colspan="3">`;
+                }
+                
+                // 药品信息
+                if (i < chemicals.length) {
+                    tableHtml += `<td>${escapeHtml(chemicals[i].name)}`;
+                    tableHtml += `<td>${escapeHtml(chemicals[i].quantity)}`;
+                    tableHtml += `<td>${escapeHtml(chemicals[i].unit || '克')}`;
+                } else {
+                    tableHtml += `<td colspan="3">`;
+                }
+                
+                if (i === 0) {
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.teacher)}`;
+                    tableHtml += `<td rowspan="${maxRows}">${app.studentCount}`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.remarks)}`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.submitter)}`;
+                    tableHtml += `<td rowspan="${maxRows}"><button class="delete-single" data-id="${app.id}" style="background:#dc2626; padding:4px 12px; color:white; border:none; border-radius:8px; cursor:pointer;">删除</button>`;
+                }
+                
+                tableHtml += `</tr>`;
+            }
         }
-        tableHtml += '</tbody></table>';
+        
+        tableHtml += '</tbody>  </table>';
         document.getElementById('recordsTableContainer').innerHTML = tableHtml;
         
         // 绑定复选框事件
@@ -767,6 +800,127 @@
         });
     }
     
+    // 显示导出选择弹窗
+    function showExportModal() {
+        const modal = document.createElement('div');
+        modal.className = 'export-select-modal';
+        modal.innerHTML = `
+            <div class="export-modal-content">
+                <h3>选择导出格式</h3>
+                <button class="export-excel-btn" id="exportExcelBtn">📊 导出为 Excel</button>
+                <button class="export-word-btn" id="exportWordBtn">📄 导出为 Word</button>
+                <button class="export-cancel-btn" id="exportCancelBtn">取消</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        document.getElementById('exportExcelBtn').addEventListener('click', () => {
+            exportToExcel();
+            modal.remove();
+        });
+        
+        document.getElementById('exportWordBtn').addEventListener('click', () => {
+            exportToWord();
+            modal.remove();
+        });
+        
+        document.getElementById('exportCancelBtn').addEventListener('click', () => {
+            modal.remove();
+        });
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+    }
+    
+    // 导出为 Excel
+    function exportToExcel() {
+        let apps = getApplications();
+        if (selectedForDelete.size > 0) {
+            apps = apps.filter(a => selectedForDelete.has(a.id));
+        }
+        if (!apps.length) { alert('没有要导出的数据'); return; }
+        
+        let excelHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>实验申请记录</title></head><body>
+            <h2>化学社团实验申请记录</h2><p>导出时间: ${new Date().toLocaleString()}</p>
+            <table border="1" cellpadding="6" style="border-collapse:collapse; width:100%">
+            <thead>
+                <tr><th>实验名称</th><th>第几周</th><th>星期几</th><th>时间</th>
+                <th>器材(名称/数量/单位)</th><th>药品(名称/数量/单位)</th>
+                <th>社团老师</th><th>学生人数</th><th>备注</th><th>提交教师</th></tr>
+            </thead><tbody>`;
+        
+        for (let app of apps) {
+            const timeInfo = parseTimeDesc(app.timeDesc);
+            const eqStr = (app.equipments || []).map(e => `${e.name} ${e.quantity}${e.unit || ''}`).join('；') || '无';
+            const chemStr = (app.chemicals || []).map(c => `${c.name} ${c.quantity}${c.unit || ''}`).join('；') || '无';
+            excelHtml += `<tr>
+                <td>${escapeHtml(app.expName)}</td>
+                <td>${escapeHtml(timeInfo.week)}</td>
+                <td>${escapeHtml(timeInfo.day)}</td>
+                <td>${escapeHtml(timeInfo.time)}</td>
+                <td>${escapeHtml(eqStr)}</td>
+                <td>${escapeHtml(chemStr)}</td>
+                <td>${escapeHtml(app.teacher)}</td>
+                <td>${app.studentCount}</td>
+                <td>${escapeHtml(app.remarks || '')}</td>
+                <td>${escapeHtml(app.submitter)}</td>
+            </tr>`;
+        }
+        
+        excelHtml += `</tbody></table></body></html>`;
+        const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `实验申请记录_${new Date().toISOString().slice(0, 19)}.xls`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+    
+    // 导出为 Word
+    function exportToWord() {
+        let apps = getApplications();
+        if (selectedForDelete.size > 0) {
+            apps = apps.filter(a => selectedForDelete.has(a.id));
+        }
+        if (!apps.length) { alert('没有要导出的数据'); return; }
+        
+        let wordHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>实验申请记录</title></head><body>
+            <h2>化学社团实验申请记录</h2><p>导出时间: ${new Date().toLocaleString()}</p>
+            <table border="1" cellpadding="6" style="border-collapse:collapse; width:100%">
+            <thead>
+                <tr><th>实验名称</th><th>第几周</th><th>星期几</th><th>时间</th>
+                <th>器材(名称/数量/单位)</th><th>药品(名称/数量/单位)</th>
+                <th>社团老师</th><th>学生人数</th><th>备注</th><th>提交教师</th></tr>
+            </thead><tbody>`;
+        
+        for (let app of apps) {
+            const timeInfo = parseTimeDesc(app.timeDesc);
+            const eqStr = (app.equipments || []).map(e => `${e.name} ${e.quantity}${e.unit || ''}`).join('；') || '无';
+            const chemStr = (app.chemicals || []).map(c => `${c.name} ${c.quantity}${c.unit || ''}`).join('；') || '无';
+            wordHtml += `<tr>
+                <td>${escapeHtml(app.expName)}</td>
+                <td>${escapeHtml(timeInfo.week)}</td>
+                <td>${escapeHtml(timeInfo.day)}</td>
+                <td>${escapeHtml(timeInfo.time)}</td>
+                <td>${escapeHtml(eqStr)}</td>
+                <td>${escapeHtml(chemStr)}</td>
+                <td>${escapeHtml(app.teacher)}</td>
+                <td>${app.studentCount}</td>
+                <td>${escapeHtml(app.remarks || '')}</td>
+                <td>${escapeHtml(app.submitter)}</td>
+            </tr>`;
+        }
+        
+        wordHtml += `</tbody></table></body></html>`;
+        const blob = new Blob([wordHtml], { type: 'application/msword' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `实验申请记录_${new Date().toISOString().slice(0, 19)}.doc`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+    
     // 批量删除
     document.getElementById('batchDeleteBtn')?.addEventListener('click', async () => {
         if (selectedForDelete.size === 0) { alert('请先选择要删除的记录'); return; }
@@ -780,29 +934,7 @@
     
     // 批量导出
     document.getElementById('batchExportBtn')?.addEventListener('click', () => {
-        let apps = getApplications();
-        if (selectedForDelete.size > 0) {
-            apps = apps.filter(a => selectedForDelete.has(a.id));
-        }
-        if (!apps.length) { alert('没有要导出的数据'); return; }
-        
-        let docHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>实验申请记录</title></head><body>
-            <h2>化学社团实验申请记录</h2><p>导出时间: ${new Date().toLocaleString()}</p>
-            <table border="1" cellpadding="6" style="border-collapse:collapse; width:100%">
-            <thead><tr><th>实验名称</th><th>第几周</th><th>星期几</th><th>时间</th><th>器材</th><th>药品</th><th>老师</th><th>人数</th><th>备注</th></tr></thead><tbody>`;
-        for (let app of apps) {
-            const timeInfo = parseTimeDesc(app.timeDesc);
-            const eqStr = (app.equipments || []).map(e => `${e.name}×${e.quantity}${e.unit || ''}`).join(',');
-            const chemStr = (app.chemicals || []).map(c => `${c.name}×${c.quantity}${c.unit || ''}`).join(',');
-            docHtml += `<tr><td>${app.expName}</td><td>${timeInfo.week}</td><td>${timeInfo.day}</td><td>${timeInfo.time}</td><td>${eqStr}</td><td>${chemStr}</td><td>${app.teacher}</td><td>${app.studentCount}</td><td>${app.remarks || ''}</td></tr>`;
-        }
-        docHtml += `</tbody></table></body></html>`;
-        const blob = new Blob([docHtml], { type: 'application/msword' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `实验申请记录_${new Date().toISOString().slice(0, 19)}.doc`;
-        link.click();
-        URL.revokeObjectURL(link.href);
+        showExportModal();
     });
     
     // 教师列表渲染
