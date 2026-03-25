@@ -21,11 +21,12 @@
         .form-group { margin-bottom: 20px; }
         label { display: block; font-weight: 600; margin-bottom: 8px; color: #1e2f41; }
         input, select, textarea { width: 100%; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 16px; font-size: 1rem; }
+        input::placeholder { color: #94a3b8; }
         .dynamic-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
         .dynamic-row input { flex: 2; }
         .dynamic-row input.qty { flex: 0.8; min-width: 80px; }
         .dynamic-row select.unit { flex: 0.6; min-width: 80px; }
-        .add-btn { background: #e9f0f5; border: 1px dashed #5b7a9a; margin-top: 8px; display: inline-block; color: #2c3e66; }
+        .add-btn { background: #e9f0f5; border: 1px dashed #5b7a9a; margin-top: 8px; display: inline-block; color: #2c3e66; cursor: pointer; }
         .suggest-box { position: relative; flex: 2; }
         .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 12px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .suggest-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
@@ -46,8 +47,11 @@
         .history-item { background: #f8fafc; border-left: 4px solid #ffb347; padding: 12px; margin-bottom: 12px; border-radius: 12px; }
         .history-item h4 { margin-bottom: 8px; color: #2c3e66; }
         .history-actions { margin-top: 10px; display: flex; gap: 10px; }
-        .history-actions button { padding: 4px 12px; font-size: 0.8rem; }
+        .history-actions button { padding: 4px 12px; font-size: 0.8rem; cursor: pointer; }
         .batch-export { background: #10b981; color: white; border: none; }
+        .back-button { margin-bottom: 20px; background: #e2e8f0; color: #1e293b; border: none; }
+        .login-hint { margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 12px; font-size: 0.9rem; color: #475569; }
+        .login-hint strong { color: #2c3e66; }
         @media (max-width: 640px) { .panel { padding: 20px 16px; } .dynamic-row { flex-direction: column; } }
     </style>
 </head>
@@ -65,24 +69,36 @@
     <!-- 教师登录界面 -->
     <div id="teacherLoginPanel" class="panel">
         <h3>教师登录</h3>
-        <div class="form-group"><label>账号</label><input type="text" id="teacherUsername" placeholder="请输入教师账号" value="teacher1"></div>
-        <div class="form-group"><label>密码</label><input type="password" id="teacherPassword" placeholder="密码" value="123"></div>
+        <div class="form-group">
+            <label>账号</label>
+            <input type="text" id="teacherUsername" placeholder="请输入教师账号">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="teacherPassword" placeholder="请输入密码">
+        </div>
         <button id="doTeacherLogin" class="primary">登录</button>
         <div id="teacherLoginError" class="error-msg"></div>
-        <div style="margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 12px;">
-            <small>📌 默认教师账号: <strong>teacher1</strong> / 密码: <strong>123</strong></small>
+        <div class="login-hint">
+            📌 默认教师账号：<strong>teacher1</strong> / 密码：<strong>123</strong>
         </div>
     </div>
 
     <!-- 管理员登录界面 -->
     <div id="adminLoginPanel" class="panel hidden">
         <h3>管理员登录</h3>
-        <div class="form-group"><label>账号</label><input type="text" id="adminUsername" placeholder="admin" value="admin"></div>
-        <div class="form-group"><label>密码</label><input type="password" id="adminPassword" placeholder="admin" value="admin"></div>
+        <div class="form-group">
+            <label>账号</label>
+            <input type="text" id="adminUsername" placeholder="请输入管理员账号">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="adminPassword" placeholder="请输入密码">
+        </div>
         <button id="doAdminLogin" class="primary">登录</button>
         <div id="adminLoginError" class="error-msg"></div>
-        <div style="margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 12px;">
-            <small>📌 默认管理员: <strong>admin</strong> / 密码: <strong>admin</strong></small>
+        <div class="login-hint">
+            📌 默认管理员：<strong>admin</strong> / 密码：<strong>admin</strong>
         </div>
     </div>
 
@@ -92,16 +108,19 @@
         <h3>👋 欢迎，<span id="currentTeacherName"></span></h3>
         
         <!-- 历史申请记录 -->
-        <div class="card">
+        <div id="historySection" class="card">
             <h4>📋 我的历史申请记录</h4>
             <div id="historyList" style="max-height: 300px; overflow-y: auto;"></div>
         </div>
         
-        <!-- 新申请表单 -->
-        <div class="card">
-            <h4>✏️ 新建实验申请</h4>
+        <!-- 申请表单区域 -->
+        <div id="formSection" class="card">
+            <h4 id="formTitle">✏️ 新建实验申请</h4>
             <form id="applyForm">
-                <div class="form-group"><label>实验名称 *</label><input type="text" id="expName" required placeholder="例如: 酸碱中和滴定"></div>
+                <div class="form-group">
+                    <label>实验名称 *</label>
+                    <input type="text" id="expName" required placeholder="例如: 酸碱中和滴定">
+                </div>
                 <div class="form-group">
                     <label>申请时间 *</label>
                     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
@@ -113,12 +132,30 @@
                         <input type="text" id="timeRange" placeholder="时间范围 (如 14:00-16:00)" required>
                     </div>
                 </div>
-                <div class="form-group"><label>需要使用的器材 (名称+数量+单位)</label><div id="equipmentList"></div><button type="button" id="addEquipmentBtn" class="add-btn">+ 添加器材</button></div>
-                <div class="form-group"><label>需要使用的药品 (名称+数量+单位)</label><div id="chemicalList"></div><button type="button" id="addChemicalBtn" class="add-btn">+ 添加药品</button></div>
-                <div class="form-group"><label>社团老师</label><input type="text" id="teacherName" required placeholder="指导老师姓名"></div>
-                <div class="form-group"><label>参加学生人数</label><input type="number" id="studentCount" min="1" required></div>
-                <div class="form-group"><label>备注</label><textarea id="remarks" rows="2" placeholder="选填"></textarea></div>
-                <button type="submit" class="primary">📤 提交申请</button>
+                <div class="form-group">
+                    <label>需要使用的器材 (名称+数量+单位)</label>
+                    <div id="equipmentList"></div>
+                    <button type="button" id="addEquipmentBtn" class="add-btn">+ 添加器材</button>
+                </div>
+                <div class="form-group">
+                    <label>需要使用的药品 (名称+数量+单位)</label>
+                    <div id="chemicalList"></div>
+                    <button type="button" id="addChemicalBtn" class="add-btn">+ 添加药品</button>
+                </div>
+                <div class="form-group">
+                    <label>社团老师</label>
+                    <input type="text" id="teacherName" required placeholder="指导老师姓名">
+                </div>
+                <div class="form-group">
+                    <label>参加学生人数</label>
+                    <input type="number" id="studentCount" min="1" required placeholder="请输入人数">
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="remarks" rows="2" placeholder="选填"></textarea>
+                </div>
+                <button type="submit" class="primary" id="submitBtn">📤 提交申请</button>
+                <button type="button" id="cancelEditBtn" class="back-button hidden">↩️ 取消修改</button>
             </form>
             <div id="applyMsg"></div>
         </div>
@@ -197,7 +234,8 @@
     let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
     let currentUserType = null;
     let currentTeacherName = null;
-    let selectedForDelete = new Set(); // 存储要删除的记录ID
+    let selectedForDelete = new Set();
+    let editingAppId = null; // 正在编辑的申请ID
     
     // DOM 元素
     const teacherLoginPanel = document.getElementById('teacherLoginPanel');
@@ -281,6 +319,47 @@
         else appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
     }
     
+    // 保存当前状态到 localStorage（用于刷新后恢复）
+    function saveCurrentState() {
+        if (currentUserType === 'teacher') {
+            localStorage.setItem('currentState', JSON.stringify({
+                type: 'teacher',
+                username: currentTeacherName,
+                editingId: editingAppId
+            }));
+        } else if (currentUserType === 'admin') {
+            localStorage.setItem('currentState', JSON.stringify({
+                type: 'admin'
+            }));
+        } else {
+            localStorage.removeItem('currentState');
+        }
+    }
+    
+    // 恢复之前状态
+    async function restoreState() {
+        const saved = localStorage.getItem('currentState');
+        if (saved) {
+            try {
+                const state = JSON.parse(saved);
+                if (state.type === 'teacher') {
+                    const teachers = getTeachers();
+                    if (teachers.find(t => t.username === state.username)) {
+                        await switchToTeacherPanel(state.username);
+                        if (state.editingId) {
+                            await editApplication(state.editingId);
+                        }
+                        return true;
+                    }
+                } else if (state.type === 'admin') {
+                    await switchToAdminPanel();
+                    return true;
+                }
+            } catch(e) {}
+        }
+        return false;
+    }
+    
     // 显示登录界面
     function showLoginOnly() {
         teacherLoginPanel.classList.remove('hidden');
@@ -289,6 +368,8 @@
         adminPanel.classList.add('hidden');
         logoutBtn.classList.add('hidden');
         currentUserType = null;
+        editingAppId = null;
+        localStorage.removeItem('currentState');
     }
     
     // 教师界面
@@ -300,10 +381,15 @@
         logoutBtn.classList.remove('hidden');
         currentUserType = 'teacher';
         currentTeacherName = username;
+        editingAppId = null;
         document.getElementById('currentTeacherName').innerText = username;
-        document.getElementById('applyForm').reset();
+        document.getElementById('formTitle').innerHTML = '✏️ 新建实验申请';
+        document.getElementById('submitBtn').innerHTML = '📤 提交申请';
+        document.getElementById('cancelEditBtn').classList.add('hidden');
+        resetForm();
         initDynamicRows();
         await renderHistoryList();
+        saveCurrentState();
     }
     
     // 管理员界面
@@ -317,6 +403,18 @@
         selectedForDelete.clear();
         await renderTeacherList();
         await renderAllApplications();
+        saveCurrentState();
+    }
+    
+    // 重置表单
+    function resetForm() {
+        document.getElementById('expName').value = '';
+        document.getElementById('weekNum').value = '';
+        document.getElementById('weekDay').value = '星期一';
+        document.getElementById('timeRange').value = '';
+        document.getElementById('teacherName').value = '';
+        document.getElementById('studentCount').value = '';
+        document.getElementById('remarks').value = '';
     }
     
     // 渲染教师的历史申请
@@ -342,8 +440,8 @@
                     <p><strong>药品：</strong>${escapeHtml(chemStr)}</p>
                     <p><strong>老师：</strong>${escapeHtml(app.teacher)} | <strong>人数：</strong>${app.studentCount}</p>
                     <div class="history-actions">
-                        <button class="edit-btn" data-id="${app.id}" style="background:#ffb347;">✏️ 修改</button>
-                        <button class="delete-btn" data-id="${app.id}" style="background:#dc2626;">🗑️ 删除</button>
+                        <button class="edit-btn" data-id="${app.id}" style="background:#ffb347; color:white;">✏️ 修改</button>
+                        <button class="delete-btn" data-id="${app.id}" style="background:#dc2626; color:white;">🗑️ 删除</button>
                     </div>
                 </div>
             `;
@@ -376,6 +474,13 @@
         const app = apps.find(a => a.id === id);
         if (!app) return;
         
+        editingAppId = id;
+        
+        // 改变表单标题和按钮
+        document.getElementById('formTitle').innerHTML = '✏️ 修改实验申请';
+        document.getElementById('submitBtn').innerHTML = '💾 保存修改';
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+        
         // 填充表单
         document.getElementById('expName').value = app.expName;
         const timeMatch = app.timeDesc.match(/第(\d+)周 (\S+) (.+)/);
@@ -404,20 +509,22 @@
         if ((app.equipments || []).length === 0) addEquipmentRow();
         if ((app.chemicals || []).length === 0) addChemicalRow();
         
-        // 修改提交处理
-        const originalSubmit = document.getElementById('applyForm').onsubmit;
-        document.getElementById('applyForm').onsubmit = async (e) => {
-            e.preventDefault();
-            await submitApplication(true, id);
-            document.getElementById('applyForm').onsubmit = originalSubmit;
-            await renderHistoryList();
-        };
-        
-        alert('请修改表单内容后提交，将覆盖原记录');
+        saveCurrentState();
+    }
+    
+    // 取消修改
+    function cancelEdit() {
+        editingAppId = null;
+        document.getElementById('formTitle').innerHTML = '✏️ 新建实验申请';
+        document.getElementById('submitBtn').innerHTML = '📤 提交申请';
+        document.getElementById('cancelEditBtn').classList.add('hidden');
+        resetForm();
+        initDynamicRows();
+        saveCurrentState();
     }
     
     // 提交申请
-    async function submitApplication(isEdit = false, editId = null) {
+    async function submitApplication() {
         const expName = document.getElementById('expName').value.trim();
         const weekNum = document.getElementById('weekNum').value;
         const weekDay = document.getElementById('weekDay').value;
@@ -447,30 +554,46 @@
             if (name && qty) chemItems.push({ name, quantity: qty, unit: unit || '' });
         });
         
-        const newApp = {
-            id: isEdit ? editId : Date.now(),
-            expName,
-            timeDesc: `第${weekNum}周 ${weekDay} ${timeRange}`,
-            equipments: equipItems,
-            chemicals: chemItems,
-            teacher: teacherName,
-            studentCount: parseInt(studentCount),
-            remarks: remarks || '',
-            submitter: currentTeacherName,
-            submitTime: new Date().toLocaleString(),
-            createdAt: new Date().toISOString()
-        };
-        
-        if (isEdit) {
-            await updateApplication(editId, newApp);
+        if (editingAppId) {
+            // 修改模式
+            const newApp = {
+                id: editingAppId,
+                expName,
+                timeDesc: `第${weekNum}周 ${weekDay} ${timeRange}`,
+                equipments: equipItems,
+                chemicals: chemItems,
+                teacher: teacherName,
+                studentCount: parseInt(studentCount),
+                remarks: remarks || '',
+                submitter: currentTeacherName,
+                submitTime: new Date().toLocaleString(),
+                createdAt: new Date().toISOString()
+            };
+            await updateApplication(editingAppId, newApp);
             document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 修改成功！</span>';
         } else {
+            // 新建模式
+            const newApp = {
+                id: Date.now(),
+                expName,
+                timeDesc: `第${weekNum}周 ${weekDay} ${timeRange}`,
+                equipments: equipItems,
+                chemicals: chemItems,
+                teacher: teacherName,
+                studentCount: parseInt(studentCount),
+                remarks: remarks || '',
+                submitter: currentTeacherName,
+                submitTime: new Date().toLocaleString(),
+                createdAt: new Date().toISOString()
+            };
             await addApplication(newApp);
             document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 提交成功！</span>';
         }
         
-        document.getElementById('applyForm').reset();
-        initDynamicRows();
+        // 返回主页面（取消编辑模式）
+        cancelEdit();
+        await renderHistoryList();
+        
         setTimeout(() => document.getElementById('applyMsg').innerHTML = '', 3000);
         return true;
     }
@@ -502,7 +625,7 @@
                 <td>${app.studentCount}</td>
                 <td>${escapeHtml(app.remarks)}</td>
                 <td>${escapeHtml(app.submitter)}</td>
-                <td><button class="delete-single" data-id="${app.id}" style="background:#dc2626; padding:4px 12px;">删除</button></td>
+                <td><button class="delete-single" data-id="${app.id}" style="background:#dc2626; padding:4px 12px; color:white; border:none; border-radius:8px; cursor:pointer;">删除</button></td>
             </tr>`;
         }
         tableHtml += '</tbody></table>';
@@ -516,14 +639,17 @@
                 else selectedForDelete.delete(id);
             });
         });
-        document.getElementById('selectAllCheckbox')?.addEventListener('change', (e) => {
-            document.querySelectorAll('.record-checkbox').forEach(cb => {
-                cb.checked = e.target.checked;
-                const id = parseInt(cb.getAttribute('data-id'));
-                if (e.target.checked) selectedForDelete.add(id);
-                else selectedForDelete.delete(id);
+        const selectAll = document.getElementById('selectAllCheckbox');
+        if (selectAll) {
+            selectAll.addEventListener('change', (e) => {
+                document.querySelectorAll('.record-checkbox').forEach(cb => {
+                    cb.checked = e.target.checked;
+                    const id = parseInt(cb.getAttribute('data-id'));
+                    if (e.target.checked) selectedForDelete.add(id);
+                    else selectedForDelete.delete(id);
+                });
             });
-        });
+        }
         
         // 绑定单个删除
         document.querySelectorAll('.delete-single').forEach(btn => {
@@ -581,7 +707,7 @@
         for (let teacher of teachers) {
             html += `<li style="background:#f1f5f9; margin:6px 0; padding:8px 12px; border-radius:20px; display: flex; justify-content: space-between;">
                 <span>📖 ${teacher.username}</span>
-                <button class="delTeacherBtn" data-user="${teacher.username}" style="background:#dc2626; border:none; color:white; padding:4px 16px; border-radius:20px;">删除</button>
+                <button class="delTeacherBtn" data-user="${teacher.username}" style="background:#dc2626; border:none; color:white; padding:4px 16px; border-radius:20px; cursor:pointer;">删除</button>
             </li>`;
         }
         html += '</ul>';
@@ -619,7 +745,7 @@
             <div class="suggest-box"><input type="text" class="eq-name" value="${escapeHtml(name)}" placeholder="器材名称"><div class="suggestions" style="display:none;"></div></div>
             <input type="number" class="eq-qty" value="${qty}" placeholder="数量" style="flex:0.8" min="1">
             <select class="eq-unit" style="flex:0.6"><option value="">单位</option>${UNITS.map(u => `<option value="${u}" ${unit === u ? 'selected' : ''}>${u}</option>`).join('')}</select>
-            <button type="button" class="remove-row-btn" style="background:#e2e8f0;">删除</button>`;
+            <button type="button" class="remove-row-btn" style="background:#e2e8f0; padding:8px 14px; border:none; border-radius:8px; cursor:pointer;">删除</button>`;
         setupSuggest(div, '.eq-name', currentEquipments);
         div.querySelector('.remove-row-btn').onclick = () => div.remove();
         document.getElementById('equipmentList').appendChild(div);
@@ -636,7 +762,7 @@
             <div class="suggest-box"><input type="text" class="ch-name" value="${escapeHtml(name)}" placeholder="药品名称"><div class="suggestions" style="display:none;"></div></div>
             <input type="number" class="ch-qty" value="${qty}" placeholder="数量" style="flex:0.8" min="1">
             <select class="ch-unit" style="flex:0.6"><option value="">单位</option>${UNITS.map(u => `<option value="${u}" ${unit === u ? 'selected' : ''}>${u}</option>`).join('')}</select>
-            <button type="button" class="remove-row-btn" style="background:#e2e8f0;">删除</button>`;
+            <button type="button" class="remove-row-btn" style="background:#e2e8f0; padding:8px 14px; border:none; border-radius:8px; cursor:pointer;">删除</button>`;
         setupSuggest(div, '.ch-name', currentChemicals);
         div.querySelector('.remove-row-btn').onclick = () => div.remove();
         document.getElementById('chemicalList').appendChild(div);
@@ -724,9 +850,12 @@
     
     document.getElementById('applyForm').onsubmit = async (e) => {
         e.preventDefault();
-        await submitApplication(false, null);
-        await renderHistoryList();
+        await submitApplication();
     };
+    
+    document.getElementById('cancelEditBtn').addEventListener('click', () => {
+        cancelEdit();
+    });
     
     document.getElementById('addEquipmentBtn').addEventListener('click', addEquipmentRow);
     document.getElementById('addChemicalBtn').addEventListener('click', addChemicalRow);
@@ -742,7 +871,10 @@
     async function start() {
         await loadFromCloud();
         loadInventory();
-        showLoginOnly();
+        const restored = await restoreState();
+        if (!restored) {
+            showLoginOnly();
+        }
     }
     start();
 </script>
