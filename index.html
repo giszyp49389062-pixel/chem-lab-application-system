@@ -15,7 +15,7 @@
         button { background: #ffffff20; border: 1px solid #ffffff60; color: white; padding: 8px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; font-weight: 500; }
         button.primary { background: #ffb347; border-color: #ffb347; color: #2c3e66; }
         button.danger { background: #dc2626; border-color: #dc2626; }
-        button.warning { background: #f59e0b; border-color: #f59e0b; }
+        button.success { background: #10b981; border-color: #10b981; }
         .panel { padding: 28px 24px; background: #fff; }
         .hidden { display: none; }
         .form-group { margin-bottom: 20px; }
@@ -53,10 +53,13 @@
         .edit-history-btn { background: #ffb347; color: white; }
         .delete-history-btn { background: #dc2626; color: white; }
         .back-button { margin-top: 10px; background: #e2e8f0; color: #1e293b; border: none; }
+        .new-application-btn { background: #10b981; color: white; border: none; padding: 12px 24px; font-size: 1rem; margin-bottom: 20px; cursor: pointer; border-radius: 40px; }
+        .new-application-btn:hover { background: #059669; }
         .equipment-list, .chemical-list { margin: 0; padding-left: 0; list-style: none; }
         .equipment-list li, .chemical-list li { margin-bottom: 4px; text-align: center; }
         .time-input-group { display: flex; gap: 12px; flex-wrap: wrap; }
         .time-input-group input, .time-input-group select { flex: 1; min-width: 0; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
         @media (max-width: 640px) { 
             .panel { padding: 20px 16px; } 
             .dynamic-row { flex-direction: column; } 
@@ -107,22 +110,33 @@
         <div id="adminLoginError" class="error-msg"></div>
     </div>
 
-    <!-- 教师主界面 -->
-    <div id="teacherPanel" class="panel hidden">
+    <!-- 教师主界面 - 历史申请记录页面 -->
+    <div id="teacherMainPanel" class="panel hidden">
         <div id="syncStatusTeacher" class="sync-status">☁️ 已连接云端</div>
-        <h3>👋 欢迎，<span id="currentTeacherName"></span></h3>
+        <div class="page-header">
+            <h3>👋 欢迎，<span id="currentTeacherName"></span></h3>
+            <button id="newApplicationBtn" class="new-application-btn">➕ 新建实验申请</button>
+        </div>
         
-        <!-- 历史申请记录 - 表格形式（优化列结构） -->
+        <!-- 历史申请记录 - 表格形式 -->
         <div id="historySection" class="card">
             <h4>📋 我的历史申请记录</h4>
             <div class="table-wrapper" id="historyTableContainer">
                 <div style="text-align:center; padding:40px;">加载中...</div>
             </div>
         </div>
+    </div>
+
+    <!-- 教师新建/修改申请页面 -->
+    <div id="teacherFormPanel" class="panel hidden">
+        <div id="syncStatusForm" class="sync-status">☁️ 已连接云端</div>
+        <div class="page-header">
+            <h3 id="formPageTitle">✏️ 新建实验申请</h3>
+            <button id="backToMainBtn" class="back-button">← 返回历史记录</button>
+        </div>
         
         <!-- 申请表单区域 -->
-        <div id="formSection" class="card">
-            <h4 id="formTitle">✏️ 新建实验申请</h4>
+        <div class="card">
             <form id="applyForm">
                 <div class="form-group">
                     <label>实验名称 *</label>
@@ -131,12 +145,12 @@
                 <div class="form-group">
                     <label>申请时间 *</label>
                     <div class="time-input-group">
-                        <input type="number" id="weekNum" placeholder="第几周（1-7）" style="flex:1;" required min="1" max="20">
+                        <input type="number" id="weekNum" placeholder="第几周" style="flex:1;" required min="1" max="20">
                         <select id="weekDay" style="flex:1;">
                             <option>星期一</option><option>星期二</option><option>星期三</option><option>星期四</option>
                             <option>星期五</option><option>星期六</option><option>星期日</option>
                         </select>
-                        <input type="text" id="timeRange" placeholder="几点进行（8-18）" style="flex:1;" required>
+                        <input type="text" id="timeRange" placeholder="8-18" style="flex:1;" required>
                     </div>
                 </div>
                 <div class="form-group">
@@ -247,7 +261,8 @@
     // DOM 元素
     const teacherLoginPanel = document.getElementById('teacherLoginPanel');
     const adminLoginPanel = document.getElementById('adminLoginPanel');
-    const teacherPanel = document.getElementById('teacherPanel');
+    const teacherMainPanel = document.getElementById('teacherMainPanel');
+    const teacherFormPanel = document.getElementById('teacherFormPanel');
     const adminPanel = document.getElementById('adminPanel');
     const logoutBtn = document.getElementById('logoutBtn');
     
@@ -352,9 +367,9 @@
                 if (state.type === 'teacher') {
                     const teachers = getTeachers();
                     if (teachers.find(t => t.username === state.username)) {
-                        await switchToTeacherPanel(state.username);
+                        await switchToTeacherMainPanel(state.username);
                         if (state.editingId) {
-                            await editApplication(state.editingId);
+                            await showEditForm(state.editingId);
                         }
                         return true;
                     }
@@ -371,7 +386,8 @@
     function showLoginOnly() {
         teacherLoginPanel.classList.remove('hidden');
         adminLoginPanel.classList.add('hidden');
-        teacherPanel.classList.add('hidden');
+        teacherMainPanel.classList.add('hidden');
+        teacherFormPanel.classList.add('hidden');
         adminPanel.classList.add('hidden');
         logoutBtn.classList.add('hidden');
         currentUserType = null;
@@ -379,23 +395,44 @@
         localStorage.removeItem('currentState');
     }
     
-    // 教师界面
-    async function switchToTeacherPanel(username) {
+    // 显示教师主页面（历史记录）
+    async function switchToTeacherMainPanel(username) {
         teacherLoginPanel.classList.add('hidden');
         adminLoginPanel.classList.add('hidden');
-        teacherPanel.classList.remove('hidden');
+        teacherMainPanel.classList.remove('hidden');
+        teacherFormPanel.classList.add('hidden');
         adminPanel.classList.add('hidden');
         logoutBtn.classList.remove('hidden');
         currentUserType = 'teacher';
         currentTeacherName = username;
         editingAppId = null;
         document.getElementById('currentTeacherName').innerText = username;
-        document.getElementById('formTitle').innerHTML = '✏️ 新建实验申请';
-        document.getElementById('submitBtn').innerHTML = '📤 提交申请';
-        document.getElementById('cancelEditBtn').classList.add('hidden');
-        resetForm();
-        initDynamicRows();
         await renderHistoryTable();
+        saveCurrentState();
+    }
+    
+    // 显示教师表单页面（新建/修改）
+    function showTeacherFormPanel(isEdit = false, editId = null) {
+        teacherMainPanel.classList.add('hidden');
+        teacherFormPanel.classList.remove('hidden');
+        
+        if (isEdit && editId) {
+            document.getElementById('formPageTitle').innerHTML = '✏️ 修改实验申请';
+            document.getElementById('submitBtn').innerHTML = '💾 保存修改';
+        } else {
+            document.getElementById('formPageTitle').innerHTML = '✏️ 新建实验申请';
+            document.getElementById('submitBtn').innerHTML = '📤 提交申请';
+            resetForm();
+            initDynamicRows();
+        }
+    }
+    
+    // 返回主页面
+    async function backToMainPage() {
+        await renderHistoryTable();
+        teacherFormPanel.classList.add('hidden');
+        teacherMainPanel.classList.remove('hidden');
+        editingAppId = null;
         saveCurrentState();
     }
     
@@ -403,7 +440,8 @@
     async function switchToAdminPanel() {
         teacherLoginPanel.classList.add('hidden');
         adminLoginPanel.classList.add('hidden');
-        teacherPanel.classList.add('hidden');
+        teacherMainPanel.classList.add('hidden');
+        teacherFormPanel.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
         currentUserType = 'admin';
@@ -433,32 +471,12 @@
         return { week: '-', day: '-', time: timeDesc };
     }
     
-    // 渲染器材列表为HTML
-    function renderEquipmentList(equipments) {
-        if (!equipments || equipments.length === 0) return '无';
-        let html = '<ul class="equipment-list">';
-        equipments.forEach(eq => {
-            html += `<li>${escapeHtml(eq.name)}<br>${eq.quantity} ${eq.unit || '个'}</li>`;
-        });
-        html += '</ul>';
-        return html;
-    }
-    
-    // 渲染药品列表为HTML
-    function renderChemicalList(chemicals) {
-        if (!chemicals || chemicals.length === 0) return '无';
-        let html = '<ul class="chemical-list">';
-        chemicals.forEach(ch => {
-            html += `<li>${escapeHtml(ch.name)}<br>${ch.quantity} ${ch.unit || '克'}</li>`;
-        });
-        html += '</ul>';
-        return html;
-    }
-    
-    // 渲染历史申请记录 - 优化列结构，所有文字居中
+    // 渲染历史申请记录 - 按时间倒序（最近一次在前）
     async function renderHistoryTable() {
         const apps = getApplications();
         const myApps = apps.filter(a => a.submitter === currentTeacherName);
+        // 按创建时间倒序排序（最近一次在前）
+        myApps.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const container = document.getElementById('historyTableContainer');
         
         if (myApps.length === 0) {
@@ -549,7 +567,7 @@
         document.querySelectorAll('.edit-history-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = parseInt(btn.getAttribute('data-id'));
-                await editApplication(id);
+                await showEditForm(id);
             });
         });
         document.querySelectorAll('.delete-history-btn').forEach(btn => {
@@ -558,25 +576,22 @@
                     const id = parseInt(btn.getAttribute('data-id'));
                     await deleteApplication(id);
                     await renderHistoryTable();
-                    if (currentUserType === 'admin') await renderAllApplications();
                     alert('删除成功');
                 }
             });
         });
     }
     
-    // 修改申请
-    async function editApplication(id) {
+    // 显示编辑表单
+    async function showEditForm(id) {
         const apps = getApplications();
         const app = apps.find(a => a.id === id);
         if (!app) return;
         
         editingAppId = id;
         
-        // 改变表单标题和按钮
-        document.getElementById('formTitle').innerHTML = '✏️ 修改实验申请';
-        document.getElementById('submitBtn').innerHTML = '💾 保存修改';
-        document.getElementById('cancelEditBtn').classList.remove('hidden');
+        // 显示表单页面
+        showTeacherFormPanel(true, id);
         
         // 填充表单
         document.getElementById('expName').value = app.expName;
@@ -604,20 +619,6 @@
         if ((app.equipments || []).length === 0) addEquipmentRow();
         if ((app.chemicals || []).length === 0) addChemicalRow();
         
-        saveCurrentState();
-        
-        // 滚动到表单区域
-        document.getElementById('formSection').scrollIntoView({ behavior: 'smooth' });
-    }
-    
-    // 取消修改
-    function cancelEdit() {
-        editingAppId = null;
-        document.getElementById('formTitle').innerHTML = '✏️ 新建实验申请';
-        document.getElementById('submitBtn').innerHTML = '📤 提交申请';
-        document.getElementById('cancelEditBtn').classList.add('hidden');
-        resetForm();
-        initDynamicRows();
         saveCurrentState();
     }
     
@@ -688,11 +689,11 @@
             document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 提交成功！</span>';
         }
         
-        // 返回主页面（取消编辑模式）
-        cancelEdit();
-        await renderHistoryTable();
+        // 返回主页面
+        setTimeout(() => {
+            backToMainPage();
+        }, 1000);
         
-        setTimeout(() => document.getElementById('applyMsg').innerHTML = '', 3000);
         return true;
     }
     
@@ -729,9 +730,9 @@
                 <td>${escapeHtml(app.remarks)}</td>
                 <td>${escapeHtml(app.submitter)}</td>
                 <td><button class="delete-single" data-id="${app.id}" style="background:#dc2626; padding:4px 12px; color:white; border:none; border-radius:8px; cursor:pointer;">删除</button></td>
-            </tr>`;
+             </tr>`;
         }
-        tableHtml += '</tbody> </table>';
+        tableHtml += '</tbody></table>';
         document.getElementById('recordsTableContainer').innerHTML = tableHtml;
         
         // 绑定复选框事件
@@ -938,7 +939,7 @@
         const pwd = document.getElementById('teacherPassword').value.trim();
         const teachers = getTeachers();
         if (teachers.find(t => t.username === username && t.password === pwd)) {
-            await switchToTeacherPanel(username);
+            await switchToTeacherMainPanel(username);
         } else {
             document.getElementById('teacherLoginError').innerText = '账号或密码错误';
         }
@@ -977,14 +978,23 @@
         setTimeout(() => document.getElementById('pwdMsg').innerHTML = '', 2000);
     });
     
+    // 按钮事件
+    document.getElementById('newApplicationBtn').addEventListener('click', () => {
+        editingAppId = null;
+        resetForm();
+        initDynamicRows();
+        showTeacherFormPanel(false);
+        saveCurrentState();
+    });
+    
+    document.getElementById('backToMainBtn').addEventListener('click', async () => {
+        await backToMainPage();
+    });
+    
     document.getElementById('applyForm').onsubmit = async (e) => {
         e.preventDefault();
         await submitApplication();
     };
-    
-    document.getElementById('cancelEditBtn').addEventListener('click', () => {
-        cancelEdit();
-    });
     
     document.getElementById('addEquipmentBtn').addEventListener('click', addEquipmentRow);
     document.getElementById('addChemicalBtn').addEventListener('click', addChemicalRow);
