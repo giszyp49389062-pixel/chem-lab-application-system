@@ -478,6 +478,95 @@
         return { week: '-', day: '-', time: timeDesc };
     }
     
+    // 生成与网页格式相同的表格HTML（用于导出）
+    function generateExportTableHTML(apps, includeCheckbox = false) {
+        if (!apps || apps.length === 0) return '<p>暂无数据</p>';
+        
+        let tableHtml = `<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; width:100%; font-family: Arial, sans-serif;">
+            <thead>`;
+        
+        // 第一行表头
+        tableHtml += `<tr style="background-color: #f1f5f9; text-align: center;">`;
+        if (includeCheckbox) {
+            tableHtml += `<th rowspan="2" style="text-align:center; vertical-align:middle;">选择</th>`;
+        }
+        tableHtml += `
+            <th rowspan="2" style="text-align:center; vertical-align:middle;">实验名称</th>
+            <th colspan="3" style="text-align:center;">申请时间</th>
+            <th colspan="3" style="text-align:center;">器材</th>
+            <th colspan="3" style="text-align:center;">药品</th>
+            <th rowspan="2" style="text-align:center; vertical-align:middle;">社团老师</th>
+            <th rowspan="2" style="text-align:center; vertical-align:middle;">学生人数</th>
+            <th rowspan="2" style="text-align:center; vertical-align:middle;">备注</th>
+            <th rowspan="2" style="text-align:center; vertical-align:middle;">提交教师</th>
+        </tr>`;
+        
+        // 第二行表头
+        tableHtml += `<tr style="background-color: #f8fafc; text-align: center;">
+            <th style="text-align:center;">第几周</th>
+            <th style="text-align:center;">星期几</th>
+            <th style="text-align:center;">时间</th>
+            <th style="text-align:center;">名称</th>
+            <th style="text-align:center;">数量</th>
+            <th style="text-align:center;">单位</th>
+            <th style="text-align:center;">名称</th>
+            <th style="text-align:center;">数量</th>
+            <th style="text-align:center;">单位</th>
+        </tr>`;
+        tableHtml += `</thead><tbody>`;
+        
+        for (let app of apps) {
+            const timeInfo = parseTimeDesc(app.timeDesc);
+            const equipments = app.equipments || [];
+            const chemicals = app.chemicals || [];
+            const maxRows = Math.max(equipments.length || 1, chemicals.length || 1);
+            
+            for (let i = 0; i < maxRows; i++) {
+                tableHtml += `<tr style="text-align:center; vertical-align:middle;">`;
+                
+                if (i === 0) {
+                    if (includeCheckbox) {
+                        tableHtml += `<td rowspan="${maxRows}" style="text-align:center; vertical-align:middle;"> </td>`;
+                    }
+                    tableHtml += `<td rowspan="${maxRows}" style="text-align:center; vertical-align:middle;">${escapeHtml(app.expName)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="text-align:center; vertical-align:middle;">${escapeHtml(timeInfo.week)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="text-align:center; vertical-align:middle;">${escapeHtml(timeInfo.day)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="text-align:center; vertical-align:middle;">${escapeHtml(timeInfo.time)}</td>`;
+                }
+                
+                // 器材信息
+                if (i < equipments.length) {
+                    tableHtml += `<td style="text-align:center;">${escapeHtml(equipments[i].name)}</td>`;
+                    tableHtml += `<td style="text-align:center;">${escapeHtml(equipments[i].quantity)}</td>`;
+                    tableHtml += `<td style="text-align:center;">${escapeHtml(equipments[i].unit || '个')}</td>`;
+                } else {
+                    tableHtml += `<td colspan="3" style="text-align:center;">-</td>`;
+                }
+                
+                // 药品信息
+                if (i < chemicals.length) {
+                    tableHtml += `<td style="text-align:center;">${escapeHtml(chemicals[i].name)}</td>`;
+                    tableHtml += `<td style="text-align:center;">${escapeHtml(chemicals[i].quantity)}</td>`;
+                    tableHtml += `<td style="text-align:center;">${escapeHtml(chemicals[i].unit || '克')}</td>`;
+                } else {
+                    tableHtml += `<td colspan="3" style="text-align:center;">-</td>`;
+                }
+                
+                if (i === 0) {
+                    tableHtml += `<td rowspan="${maxRows}" style="text-align:center; vertical-align:middle;">${escapeHtml(app.teacher)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="text-align:center; vertical-align:middle;">${app.studentCount}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="text-align:center; vertical-align:middle;">${escapeHtml(app.remarks || '')}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}" style="text-align:center; vertical-align:middle;">${escapeHtml(app.submitter)}</td>`;
+                }
+                
+                tableHtml += `</tr>`;
+            }
+        }
+        
+        tableHtml += `</tbody></table>`;
+        return tableHtml;
+    }
+    
     // 渲染历史申请记录
     async function renderHistoryTable() {
         const apps = getApplications();
@@ -532,7 +621,7 @@
                     tableHtml += `<td>${escapeHtml(equipments[i].quantity)}</td>`;
                     tableHtml += `<td>${escapeHtml(equipments[i].unit || '个')}</td>`;
                 } else {
-                    tableHtml += `<td colspan="3"></td>`;
+                    tableHtml += `<td colspan="3">-</td>`;
                 }
                 
                 if (i < chemicals.length) {
@@ -540,7 +629,7 @@
                     tableHtml += `<td>${escapeHtml(chemicals[i].quantity)}</td>`;
                     tableHtml += `<td>${escapeHtml(chemicals[i].unit || '克')}</td>`;
                 } else {
-                    tableHtml += `<td colspan="3"></td>`;
+                    tableHtml += `<td colspan="3">-</td>`;
                 }
                 
                 if (i === 0) {
@@ -552,7 +641,7 @@
                             <button class="edit-history-btn" data-id="${app.id}">✏️ 修改</button>
                             <button class="delete-history-btn" data-id="${app.id}">🗑️ 删除</button>
                         </div>
-                    </td>`;
+                     </td>`;
                 }
                 tableHtml += `</tr>`;
             }
@@ -686,7 +775,7 @@
         return true;
     }
     
-    // 渲染所有申请记录（管理员）- 优化表格结构
+    // 渲染所有申请记录（管理员）
     async function renderAllApplications() {
         const apps = getApplications();
         if (apps.length === 0) {
@@ -708,14 +797,14 @@
             <th rowspan="2">备注</th>
             <th rowspan="2">提交教师</th>
             <th rowspan="2">操作</th>
-         </tr>`;
+          </tr>`;
         
         // 第二行表头 - 子列
         tableHtml += `<tr>
             <th>第几周</th><th>星期几</th><th>时间</th>
             <th>名称</th><th>数量</th><th>单位</th>
             <th>名称</th><th>数量</th><th>单位</th>
-         </tr></thead><tbody>`;
+          </tr></thead><tbody>`;
         
         for (let app of apps) {
             const timeInfo = parseTimeDesc(app.timeDesc);
@@ -728,44 +817,44 @@
                 tableHtml += `<tr style="text-align:center;">`;
                 
                 if (i === 0) {
-                    tableHtml += `<td rowspan="${maxRows}"><input type="checkbox" class="record-checkbox" data-id="${app.id}" ${isChecked ? 'checked' : ''}>`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.expName)}`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.week)}`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.day)}`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.time)}`;
+                    tableHtml += `<td rowspan="${maxRows}"><input type="checkbox" class="record-checkbox" data-id="${app.id}" ${isChecked ? 'checked' : ''}></td>`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.expName)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.week)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.day)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(timeInfo.time)}</td>`;
                 }
                 
                 // 器材信息
                 if (i < equipments.length) {
-                    tableHtml += `<td>${escapeHtml(equipments[i].name)}`;
-                    tableHtml += `<td>${escapeHtml(equipments[i].quantity)}`;
-                    tableHtml += `<td>${escapeHtml(equipments[i].unit || '个')}`;
+                    tableHtml += `<td>${escapeHtml(equipments[i].name)}</td>`;
+                    tableHtml += `<td>${escapeHtml(equipments[i].quantity)}</td>`;
+                    tableHtml += `<td>${escapeHtml(equipments[i].unit || '个')}</td>`;
                 } else {
-                    tableHtml += `<td colspan="3">`;
+                    tableHtml += `<td colspan="3">-</td>`;
                 }
                 
                 // 药品信息
                 if (i < chemicals.length) {
-                    tableHtml += `<td>${escapeHtml(chemicals[i].name)}`;
-                    tableHtml += `<td>${escapeHtml(chemicals[i].quantity)}`;
-                    tableHtml += `<td>${escapeHtml(chemicals[i].unit || '克')}`;
+                    tableHtml += `<td>${escapeHtml(chemicals[i].name)}</td>`;
+                    tableHtml += `<td>${escapeHtml(chemicals[i].quantity)}</td>`;
+                    tableHtml += `<td>${escapeHtml(chemicals[i].unit || '克')}</td>`;
                 } else {
-                    tableHtml += `<td colspan="3">`;
+                    tableHtml += `<td colspan="3">-</td>`;
                 }
                 
                 if (i === 0) {
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.teacher)}`;
-                    tableHtml += `<td rowspan="${maxRows}">${app.studentCount}`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.remarks)}`;
-                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.submitter)}`;
-                    tableHtml += `<td rowspan="${maxRows}"><button class="delete-single" data-id="${app.id}" style="background:#dc2626; padding:4px 12px; color:white; border:none; border-radius:8px; cursor:pointer;">删除</button>`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.teacher)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}">${app.studentCount}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.remarks)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}">${escapeHtml(app.submitter)}</td>`;
+                    tableHtml += `<td rowspan="${maxRows}"><button class="delete-single" data-id="${app.id}" style="background:#dc2626; padding:4px 12px; color:white; border:none; border-radius:8px; cursor:pointer;">删除</button></td>`;
                 }
                 
                 tableHtml += `</tr>`;
             }
         }
         
-        tableHtml += '</tbody>  </table>';
+        tableHtml += '</tbody></table>';
         document.getElementById('recordsTableContainer').innerHTML = tableHtml;
         
         // 绑定复选框事件
@@ -833,7 +922,7 @@
         });
     }
     
-    // 导出为 Excel
+    // 导出为 Excel（与网页格式相同）
     function exportToExcel() {
         let apps = getApplications();
         if (selectedForDelete.size > 0) {
@@ -841,35 +930,31 @@
         }
         if (!apps.length) { alert('没有要导出的数据'); return; }
         
-        let excelHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>实验申请记录</title></head><body>
-            <h2>化学社团实验申请记录</h2><p>导出时间: ${new Date().toLocaleString()}</p>
-            <table border="1" cellpadding="6" style="border-collapse:collapse; width:100%">
-            <thead>
-                <tr><th>实验名称</th><th>第几周</th><th>星期几</th><th>时间</th>
-                <th>器材(名称/数量/单位)</th><th>药品(名称/数量/单位)</th>
-                <th>社团老师</th><th>学生人数</th><th>备注</th><th>提交教师</th></tr>
-            </thead><tbody>`;
+        const tableHtml = generateExportTableHTML(apps, true);
         
-        for (let app of apps) {
-            const timeInfo = parseTimeDesc(app.timeDesc);
-            const eqStr = (app.equipments || []).map(e => `${e.name} ${e.quantity}${e.unit || ''}`).join('；') || '无';
-            const chemStr = (app.chemicals || []).map(c => `${c.name} ${c.quantity}${c.unit || ''}`).join('；') || '无';
-            excelHtml += `<tr>
-                <td>${escapeHtml(app.expName)}</td>
-                <td>${escapeHtml(timeInfo.week)}</td>
-                <td>${escapeHtml(timeInfo.day)}</td>
-                <td>${escapeHtml(timeInfo.time)}</td>
-                <td>${escapeHtml(eqStr)}</td>
-                <td>${escapeHtml(chemStr)}</td>
-                <td>${escapeHtml(app.teacher)}</td>
-                <td>${app.studentCount}</td>
-                <td>${escapeHtml(app.remarks || '')}</td>
-                <td>${escapeHtml(app.submitter)}</td>
-            </tr>`;
-        }
+        const fullHtml = `<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>实验申请记录</title>
+            <style>
+                body { font-family: '宋体', Arial, sans-serif; margin: 20px; }
+                h2 { color: #2c3e66; text-align: center; margin-bottom: 20px; }
+                .export-time { text-align: right; margin-bottom: 20px; color: #666; font-size: 12px; }
+                table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; }
+                th { background-color: #f1f5f9; font-weight: bold; }
+                .checkbox-col { width: 50px; }
+            </style>
+        </head>
+        <body>
+            <h2>化学社团实验申请记录</h2>
+            <div class="export-time">导出时间: ${new Date().toLocaleString()}</div>
+            ${tableHtml}
+        </body>
+        </html>`;
         
-        excelHtml += `</tbody></table></body></html>`;
-        const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel' });
+        const blob = new Blob([fullHtml], { type: 'application/vnd.ms-excel' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `实验申请记录_${new Date().toISOString().slice(0, 19)}.xls`;
@@ -877,7 +962,7 @@
         URL.revokeObjectURL(link.href);
     }
     
-    // 导出为 Word
+    // 导出为 Word（与网页格式相同）
     function exportToWord() {
         let apps = getApplications();
         if (selectedForDelete.size > 0) {
@@ -885,35 +970,30 @@
         }
         if (!apps.length) { alert('没有要导出的数据'); return; }
         
-        let wordHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>实验申请记录</title></head><body>
-            <h2>化学社团实验申请记录</h2><p>导出时间: ${new Date().toLocaleString()}</p>
-            <table border="1" cellpadding="6" style="border-collapse:collapse; width:100%">
-            <thead>
-                <tr><th>实验名称</th><th>第几周</th><th>星期几</th><th>时间</th>
-                <th>器材(名称/数量/单位)</th><th>药品(名称/数量/单位)</th>
-                <th>社团老师</th><th>学生人数</th><th>备注</th><th>提交教师</th></tr>
-            </thead><tbody>`;
+        const tableHtml = generateExportTableHTML(apps, true);
         
-        for (let app of apps) {
-            const timeInfo = parseTimeDesc(app.timeDesc);
-            const eqStr = (app.equipments || []).map(e => `${e.name} ${e.quantity}${e.unit || ''}`).join('；') || '无';
-            const chemStr = (app.chemicals || []).map(c => `${c.name} ${c.quantity}${c.unit || ''}`).join('；') || '无';
-            wordHtml += `<tr>
-                <td>${escapeHtml(app.expName)}</td>
-                <td>${escapeHtml(timeInfo.week)}</td>
-                <td>${escapeHtml(timeInfo.day)}</td>
-                <td>${escapeHtml(timeInfo.time)}</td>
-                <td>${escapeHtml(eqStr)}</td>
-                <td>${escapeHtml(chemStr)}</td>
-                <td>${escapeHtml(app.teacher)}</td>
-                <td>${app.studentCount}</td>
-                <td>${escapeHtml(app.remarks || '')}</td>
-                <td>${escapeHtml(app.submitter)}</td>
-            </tr>`;
-        }
+        const fullHtml = `<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>实验申请记录</title>
+            <style>
+                body { font-family: '宋体', Arial, sans-serif; margin: 20px; }
+                h2 { color: #2c3e66; text-align: center; margin-bottom: 20px; }
+                .export-time { text-align: right; margin-bottom: 20px; color: #666; font-size: 12px; }
+                table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; }
+                th { background-color: #f1f5f9; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <h2>化学社团实验申请记录</h2>
+            <div class="export-time">导出时间: ${new Date().toLocaleString()}</div>
+            ${tableHtml}
+        </body>
+        </html>`;
         
-        wordHtml += `</tbody></table></body></html>`;
-        const blob = new Blob([wordHtml], { type: 'application/msword' });
+        const blob = new Blob([fullHtml], { type: 'application/msword' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `实验申请记录_${new Date().toISOString().slice(0, 19)}.doc`;
