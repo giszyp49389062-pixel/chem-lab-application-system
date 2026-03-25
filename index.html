@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>化学社团实验申请系统 - 云端同步版</title>
+    <title>化学社团实验申请系统 - 完整版</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Roboto, sans-serif; background: #e9f0f5; padding: 20px; }
-        .app-container { max-width: 1300px; width: 100%; background: white; border-radius: 28px; margin: 0 auto; overflow: hidden; }
-        .header { background: #2c3e66; color: white; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+        .app-container { max-width: 1400px; width: 100%; background: white; border-radius: 28px; margin: 0 auto; overflow: hidden; box-shadow: 0 20px 35px -12px rgba(0,0,0,0.15); }
+        .header { background: #2c3e66; color: white; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
         .logo h2 { font-weight: 500; font-size: 1.3rem; }
         .logo small { font-size: 0.7rem; opacity: 0.8; }
         .auth-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
-        button { background: #ffffff20; border: 1px solid #ffffff60; color: white; padding: 8px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; }
+        button { background: #ffffff20; border: 1px solid #ffffff60; color: white; padding: 8px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; font-weight: 500; }
         button.primary { background: #ffb347; border-color: #ffb347; color: #2c3e66; }
+        button.danger { background: #dc2626; border-color: #dc2626; }
+        button.warning { background: #f59e0b; border-color: #f59e0b; }
         .panel { padding: 28px 24px; background: #fff; }
         .hidden { display: none; }
         .form-group { margin-bottom: 20px; }
@@ -22,6 +24,7 @@
         .dynamic-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
         .dynamic-row input { flex: 2; }
         .dynamic-row input.qty { flex: 0.8; min-width: 80px; }
+        .dynamic-row select.unit { flex: 0.6; min-width: 80px; }
         .add-btn { background: #e9f0f5; border: 1px dashed #5b7a9a; margin-top: 8px; display: inline-block; color: #2c3e66; }
         .suggest-box { position: relative; flex: 2; }
         .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 12px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -29,25 +32,29 @@
         .suggest-item:hover { background: #eef2ff; }
         .data-table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
         .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.85rem; }
-        .data-table th { background: #f1f5f9; }
-        .table-wrapper { overflow-x: auto; margin: 20px 0; }
+        .data-table th { background: #f1f5f9; position: sticky; top: 0; }
+        .table-wrapper { overflow-x: auto; margin: 20px 0; max-height: 500px; overflow-y: auto; }
         .admin-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
         .card { background: #f8fafc; border-radius: 20px; padding: 16px; margin-bottom: 20px; }
+        .collapse-header { cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #e2e8f0; border-radius: 12px; margin-bottom: 10px; }
+        .collapse-header:hover { background: #cbd5e1; }
+        .collapse-content { display: none; padding: 15px 0; }
+        .collapse-content.show { display: block; }
         .error-msg { color: #dc2626; font-size: 0.85rem; margin-top: 5px; }
         .success-msg { color: #10b981; }
-        .sync-status { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; background: #e2e8f0; color: #1e293b; }
-        .sync-status.success { background: #10b98120; color: #10b981; }
-        .sync-status.error { background: #dc262620; color: #dc2626; }
-        .sync-status.syncing { background: #ffb34720; color: #ffb347; }
+        .sync-status { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; background: #e2e8f0; color: #1e293b; margin-bottom: 15px; }
+        .history-item { background: #f8fafc; border-left: 4px solid #ffb347; padding: 12px; margin-bottom: 12px; border-radius: 12px; }
+        .history-item h4 { margin-bottom: 8px; color: #2c3e66; }
+        .history-actions { margin-top: 10px; display: flex; gap: 10px; }
+        .history-actions button { padding: 4px 12px; font-size: 0.8rem; }
+        .batch-export { background: #10b981; color: white; border: none; }
         @media (max-width: 640px) { .panel { padding: 20px 16px; } .dynamic-row { flex-direction: column; } }
     </style>
 </head>
 <body>
 <div class="app-container">
     <div class="header">
-        <div class="logo">
-            <h2>🧪 化学社团实验申请系统 <small>☁️ 多设备云同步</small></h2>
-        </div>
+        <div class="logo"><h2>🧪 化学社团实验申请系统 <small>☁️ 完整版</small></h2></div>
         <div class="auth-buttons">
             <button id="showTeacherLoginBtn" class="primary">👩‍🏫 教师登录</button>
             <button id="showAdminLoginBtn">🔐 管理员登录</button>
@@ -55,251 +62,142 @@
         </div>
     </div>
 
+    <!-- 教师登录界面 -->
     <div id="teacherLoginPanel" class="panel">
         <h3>教师登录</h3>
-        <div class="form-group"><label>账号</label><input type="text" id="teacherUsername" placeholder="teacher1"></div>
-        <div class="form-group"><label>密码</label><input type="password" id="teacherPassword" placeholder="123"></div>
+        <div class="form-group"><label>账号</label><input type="text" id="teacherUsername" placeholder="请输入教师账号" value="teacher1"></div>
+        <div class="form-group"><label>密码</label><input type="password" id="teacherPassword" placeholder="密码" value="123"></div>
         <button id="doTeacherLogin" class="primary">登录</button>
         <div id="teacherLoginError" class="error-msg"></div>
         <div style="margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 12px;">
-            <small>📌 默认教师账号: teacher1 / 123</small>
+            <small>📌 默认教师账号: <strong>teacher1</strong> / 密码: <strong>123</strong></small>
         </div>
     </div>
 
+    <!-- 管理员登录界面 -->
     <div id="adminLoginPanel" class="panel hidden">
         <h3>管理员登录</h3>
-        <div class="form-group"><label>账号</label><input type="text" id="adminUsername" placeholder="admin"></div>
-        <div class="form-group"><label>密码</label><input type="password" id="adminPassword" placeholder="admin"></div>
+        <div class="form-group"><label>账号</label><input type="text" id="adminUsername" placeholder="admin" value="admin"></div>
+        <div class="form-group"><label>密码</label><input type="password" id="adminPassword" placeholder="admin" value="admin"></div>
         <button id="doAdminLogin" class="primary">登录</button>
         <div id="adminLoginError" class="error-msg"></div>
         <div style="margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: 12px;">
-            <small>📌 默认管理员: admin / admin</small>
+            <small>📌 默认管理员: <strong>admin</strong> / 密码: <strong>admin</strong></small>
         </div>
     </div>
 
+    <!-- 教师主界面 -->
     <div id="teacherPanel" class="panel hidden">
-        <h3>📋 实验申请表单</h3>
-        <div id="syncStatusTeacher" class="sync-status" style="margin-bottom: 15px;">☁️ 云端同步中...</div>
-        <form id="applyForm">
-            <div class="form-group"><label>实验名称 *</label><input type="text" id="expName" required placeholder="例如: 酸碱中和滴定"></div>
-            <div class="form-group"><label>申请时间 *</label>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <input type="number" id="weekNum" placeholder="第几周" style="width:100px;" required>
-                    <select id="weekDay">
-                        <option>星期一</option><option>星期二</option><option>星期三</option><option>星期四</option>
-                        <option>星期五</option><option>星期六</option><option>星期日</option>
-                    </select>
-                    <input type="text" id="timeRange" placeholder="时间范围 如 14:00-16:00" required>
+        <div id="syncStatusTeacher" class="sync-status">☁️ 已连接云端</div>
+        <h3>👋 欢迎，<span id="currentTeacherName"></span></h3>
+        
+        <!-- 历史申请记录 -->
+        <div class="card">
+            <h4>📋 我的历史申请记录</h4>
+            <div id="historyList" style="max-height: 300px; overflow-y: auto;"></div>
+        </div>
+        
+        <!-- 新申请表单 -->
+        <div class="card">
+            <h4>✏️ 新建实验申请</h4>
+            <form id="applyForm">
+                <div class="form-group"><label>实验名称 *</label><input type="text" id="expName" required placeholder="例如: 酸碱中和滴定"></div>
+                <div class="form-group">
+                    <label>申请时间 *</label>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <input type="number" id="weekNum" placeholder="第几周 (1-20)" style="width:100px;" required min="1" max="20">
+                        <select id="weekDay">
+                            <option>星期一</option><option>星期二</option><option>星期三</option><option>星期四</option>
+                            <option>星期五</option><option>星期六</option><option>星期日</option>
+                        </select>
+                        <input type="text" id="timeRange" placeholder="时间范围 (如 14:00-16:00)" required>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group"><label>需要使用的器材</label><div id="equipmentList"></div><button type="button" id="addEquipmentBtn" class="add-btn">+ 添加器材</button></div>
-            <div class="form-group"><label>需要使用的药品</label><div id="chemicalList"></div><button type="button" id="addChemicalBtn" class="add-btn">+ 添加药品</button></div>
-            <div class="form-group"><label>社团老师</label><input type="text" id="teacherName" required placeholder="指导老师姓名"></div>
-            <div class="form-group"><label>参加学生人数</label><input type="number" id="studentCount" min="1" required></div>
-            <div class="form-group"><label>备注</label><textarea id="remarks" rows="2" placeholder="选填"></textarea></div>
-            <button type="submit" class="primary">📤 提交申请</button>
-        </form>
-        <div id="applyMsg"></div>
+                <div class="form-group"><label>需要使用的器材 (名称+数量+单位)</label><div id="equipmentList"></div><button type="button" id="addEquipmentBtn" class="add-btn">+ 添加器材</button></div>
+                <div class="form-group"><label>需要使用的药品 (名称+数量+单位)</label><div id="chemicalList"></div><button type="button" id="addChemicalBtn" class="add-btn">+ 添加药品</button></div>
+                <div class="form-group"><label>社团老师</label><input type="text" id="teacherName" required placeholder="指导老师姓名"></div>
+                <div class="form-group"><label>参加学生人数</label><input type="number" id="studentCount" min="1" required></div>
+                <div class="form-group"><label>备注</label><textarea id="remarks" rows="2" placeholder="选填"></textarea></div>
+                <button type="submit" class="primary">📤 提交申请</button>
+            </form>
+            <div id="applyMsg"></div>
+        </div>
     </div>
 
+    <!-- 管理员界面 -->
     <div id="adminPanel" class="panel hidden">
+        <div id="syncStatusAdmin" class="sync-status">☁️ 已连接云端</div>
         <h3>⚙️ 管理员后台</h3>
-        <div id="syncStatusAdmin" class="sync-status" style="margin-bottom: 15px;">☁️ 云端同步中...</div>
+        
+        <!-- 修改管理员密码（折叠） -->
         <div class="card">
-            <h4>🔐 修改管理员密码</h4>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="password" id="newAdminPwd" placeholder="新密码" style="flex:1;">
-                <button id="updateAdminPwdBtn">更新密码</button>
+            <div class="collapse-header" data-target="collapsePwd">
+                <span>🔐 修改管理员密码</span>
+                <span>▼</span>
             </div>
-            <div id="pwdMsg"></div>
-        </div>
-        <div class="card">
-            <h4>👥 教师账号管理</h4>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-                <input type="text" id="newTeacherUser" placeholder="新教师账号">
-                <input type="text" id="newTeacherPwd" placeholder="密码">
-                <button id="addTeacherBtn">➕ 添加教师</button>
+            <div id="collapsePwd" class="collapse-content">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="password" id="newAdminPwd" placeholder="新密码" style="flex:1;">
+                    <button id="updateAdminPwdBtn">更新密码</button>
+                </div>
+                <div id="pwdMsg"></div>
             </div>
-            <div id="teacherListArea"></div>
         </div>
+        
+        <!-- 教师账号管理（折叠） -->
         <div class="card">
-            <h4>📄 实验申请记录</h4>
+            <div class="collapse-header" data-target="collapseTeacher">
+                <span>👥 教师账号管理</span>
+                <span>▼</span>
+            </div>
+            <div id="collapseTeacher" class="collapse-content">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                    <input type="text" id="newTeacherUser" placeholder="新教师账号">
+                    <input type="text" id="newTeacherPwd" placeholder="密码">
+                    <button id="addTeacherBtn">➕ 添加教师</button>
+                </div>
+                <div id="teacherListArea"></div>
+            </div>
+        </div>
+        
+        <!-- 实验申请记录管理 -->
+        <div class="card">
+            <h4>📄 实验申请记录管理</h4>
             <div class="admin-actions">
-                <button id="exportDocBtn">📎 导出 DOC 表格</button>
-                <button id="refreshRecordsBtn">🔄 手动刷新</button>
-                <button id="forceSyncBtn">☁️ 强制同步云端</button>
+                <button id="batchDeleteBtn" class="danger">🗑️ 批量删除</button>
+                <button id="batchExportBtn" class="batch-export">📎 批量导出 (DOC)</button>
+                <button id="refreshRecordsBtn">🔄 刷新列表</button>
+                <button id="forceSyncBtn">☁️ 强制同步</button>
             </div>
-            <div class="table-wrapper" id="recordsTableContainer">加载中...</div>
+            <div class="table-wrapper" id="recordsTableContainer">
+                <div style="text-align:center; padding:40px;">加载中...</div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
+    // 单位选项
+    const UNITS = ["个", "克", "毫升", "瓶", "包", "支", "套", "盒"];
+    
     // ==================== 云端存储配置 ====================
-    // ⚠️ 重要：请先访问 https://jsonbin.io 创建 Bin，然后替换下面的 ID
-    // 如何获取 Bin ID：创建 Bin 后，URL 类似 https://api.jsonbin.io/v3/b/65a1b2c3d4e5f6，其中 65a1b2c3d4e5f6 就是 Bin ID
+    const JSONBIN_BIN_ID = "69c38fd9b7ec241ddc9ef898";  // 请填入你的 Bin ID
+    const JSONBIN_API_KEY = "";
+    const STORAGE_KEY = "chem_lab_system_v3";
     
-    // 🔴 请在这里填入你的 JSONBin Bin ID 🔴
-    const JSONBIN_BIN_ID = "69c38fd9b7ec241ddc9ef898";  // 例如: "65a1b2c3d4e5f6"
-    
-    // 可选：如果需要更高的安全性，可以注册账号获取 API Key（免费）
-    const JSONBIN_API_KEY = "";  // 留空也可以使用公开 Bin
-    
-    // 本地存储的键名
-    const STORAGE_KEY = "chem_lab_system_v2";
-    
-    // 默认数据结构
     const DEFAULT_DATA = {
         teachers: [{ username: "teacher1", password: "123" }],
         applications: [],
-        equipments: ["试管", "烧杯", "酒精灯", "量筒", "滴定管", "铁架台", "漏斗", "玻璃棒", "容量瓶", "胶头滴管", "蒸发皿", "坩埚"],
-        chemicals: ["盐酸", "氢氧化钠", "酚酞", "硫酸铜", "氯化钠", "乙醇", "高锰酸钾", "过氧化氢", "硫酸", "氨水", "碳酸钙", "硝酸银"],
+        equipments: ["试管", "烧杯", "酒精灯", "量筒", "滴定管", "铁架台", "漏斗", "玻璃棒", "容量瓶", "胶头滴管"],
+        chemicals: ["盐酸", "氢氧化钠", "酚酞", "硫酸铜", "氯化钠", "乙醇", "高锰酸钾", "过氧化氢", "硫酸", "氨水"],
         admin: { username: "admin", password: "admin" },
         lastSync: null
     };
     
-    // 全局数据
     let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
-    let lastSyncTime = null;
-    
-    // 更新同步状态显示
-    function updateSyncStatus(message, isError = false) {
-        const statusElements = document.querySelectorAll('.sync-status');
-        statusElements.forEach(el => {
-            if (el) {
-                el.className = `sync-status ${isError ? 'error' : 'success'}`;
-                el.innerHTML = message;
-            }
-        });
-        setTimeout(() => {
-            statusElements.forEach(el => {
-                if (el && !el.innerHTML.includes('失败')) {
-                    el.className = 'sync-status';
-                    el.innerHTML = '☁️ 已同步';
-                }
-            });
-        }, 3000);
-    }
-    
-    // 从云端加载数据
-    async function loadFromCloud() {
-        // 如果没配置 Bin ID，使用本地存储
-        if (!JSONBIN_BIN_ID || JSONBIN_BIN_ID === "") {
-            console.warn("未配置 JSONBin ID，使用本地存储");
-            loadFromLocal();
-            updateSyncStatus("📱 本地存储模式（未配置云端）", false);
-            return false;
-        }
-        
-        try {
-            updateSyncStatus("☁️ 正在从云端加载...", false);
-            
-            const url = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`;
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(JSONBIN_API_KEY && { 'X-Master-Key': JSONBIN_API_KEY })
-                }
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                if (result.record && Object.keys(result.record).length > 0) {
-                    // 合并云端数据
-                    appData = { ...DEFAULT_DATA, ...result.record };
-                    lastSyncTime = new Date();
-                    // 保存到本地缓存
-                    saveToLocal();
-                    updateSyncStatus(`✅ 云端同步成功 ${new Date().toLocaleTimeString()}`, false);
-                    console.log("云端加载成功", appData);
-                    return true;
-                } else {
-                    throw new Error("云端数据为空");
-                }
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
-        } catch (error) {
-            console.error("云端加载失败:", error);
-            updateSyncStatus(`⚠️ 云端连接失败，使用本地数据: ${error.message}`, true);
-            loadFromLocal();
-            return false;
-        }
-    }
-    
-    // 保存数据到云端
-    async function saveToCloud() {
-        if (!JSONBIN_BIN_ID || JSONBIN_BIN_ID === "") {
-            saveToLocal();
-            return false;
-        }
-        
-        try {
-            appData.lastSync = new Date().toISOString();
-            
-            const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(JSONBIN_API_KEY && { 'X-Master-Key': JSONBIN_API_KEY })
-                },
-                body: JSON.stringify(appData)
-            });
-            
-            if (response.ok) {
-                saveToLocal();
-                updateSyncStatus("✅ 已同步到云端", false);
-                console.log("云端保存成功");
-                return true;
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
-        } catch (error) {
-            console.error("云端保存失败:", error);
-            updateSyncStatus(`⚠️ 云端保存失败，已保存到本地: ${error.message}`, true);
-            saveToLocal();
-            return false;
-        }
-    }
-    
-    // 保存到本地存储
-    function saveToLocal() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-    }
-    
-    // 从本地存储加载
-    function loadFromLocal() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                appData = { ...DEFAULT_DATA, ...parsed };
-                console.log("从本地加载成功");
-            } catch (e) {
-                appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
-            }
-        } else {
-            appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
-        }
-    }
-    
-    // 获取数据
-    function getTeachers() { return appData.teachers || []; }
-    function getApplications() { return appData.applications || []; }
-    function getEquipments() { return appData.equipments || []; }
-    function getChemicals() { return appData.chemicals || []; }
-    function getAdmin() { return appData.admin || { username: 'admin', password: 'admin' }; }
-    
-    // 设置数据并同步
-    async function setTeachers(data) { appData.teachers = data; await saveToCloud(); }
-    async function setApplications(data) { appData.applications = data; await saveToCloud(); }
-    async function addApplication(app) { appData.applications.unshift(app); await saveToCloud(); }
-    async function updateAdmin(admin) { appData.admin = admin; await saveToCloud(); }
-    
-    // 当前登录状态
     let currentUserType = null;
     let currentTeacherName = null;
+    let selectedForDelete = new Set(); // 存储要删除的记录ID
     
     // DOM 元素
     const teacherLoginPanel = document.getElementById('teacherLoginPanel');
@@ -308,6 +206,82 @@
     const adminPanel = document.getElementById('adminPanel');
     const logoutBtn = document.getElementById('logoutBtn');
     
+    // 数据操作函数
+    function getTeachers() { return appData.teachers || []; }
+    function getApplications() { return appData.applications || []; }
+    function getEquipments() { return appData.equipments || []; }
+    function getChemicals() { return appData.chemicals || []; }
+    function getAdmin() { return appData.admin || { username: 'admin', password: 'admin' }; }
+    
+    async function setTeachers(data) { appData.teachers = data; await saveToCloud(); }
+    async function setApplications(data) { appData.applications = data; await saveToCloud(); }
+    async function addApplication(app) { appData.applications.unshift(app); await saveToCloud(); }
+    async function updateApplication(id, newApp) { 
+        const index = appData.applications.findIndex(a => a.id == id);
+        if (index !== -1) appData.applications[index] = newApp;
+        await saveToCloud();
+    }
+    async function deleteApplication(id) {
+        appData.applications = appData.applications.filter(a => a.id != id);
+        await saveToCloud();
+    }
+    async function batchDeleteApplications(ids) {
+        appData.applications = appData.applications.filter(a => !ids.includes(a.id));
+        await saveToCloud();
+    }
+    async function updateAdmin(admin) { appData.admin = admin; await saveToCloud(); }
+    
+    // 云端同步
+    async function loadFromCloud() {
+        if (!JSONBIN_BIN_ID || JSONBIN_BIN_ID === "") {
+            loadFromLocal();
+            return false;
+        }
+        try {
+            const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                headers: JSONBIN_API_KEY ? { 'X-Master-Key': JSONBIN_API_KEY } : {}
+            });
+            if (response.ok) {
+                const result = await response.json();
+                if (result.record && Object.keys(result.record).length > 0) {
+                    appData = { ...DEFAULT_DATA, ...result.record };
+                    saveToLocal();
+                    return true;
+                }
+            }
+        } catch (error) { console.error("云端加载失败:", error); }
+        loadFromLocal();
+        return false;
+    }
+    
+    async function saveToCloud() {
+        if (!JSONBIN_BIN_ID || JSONBIN_BIN_ID === "") {
+            saveToLocal();
+            return false;
+        }
+        try {
+            appData.lastSync = new Date().toISOString();
+            await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(JSONBIN_API_KEY && { 'X-Master-Key': JSONBIN_API_KEY })
+                },
+                body: JSON.stringify(appData)
+            });
+            saveToLocal();
+            return true;
+        } catch (error) { saveToLocal(); return false; }
+    }
+    
+    function saveToLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
+    function loadFromLocal() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) appData = { ...DEFAULT_DATA, ...JSON.parse(saved) };
+        else appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
+    
+    // 显示登录界面
     function showLoginOnly() {
         teacherLoginPanel.classList.remove('hidden');
         adminLoginPanel.classList.add('hidden');
@@ -317,7 +291,8 @@
         currentUserType = null;
     }
     
-    function switchToTeacherPanel(username) {
+    // 教师界面
+    async function switchToTeacherPanel(username) {
         teacherLoginPanel.classList.add('hidden');
         adminLoginPanel.classList.add('hidden');
         teacherPanel.classList.remove('hidden');
@@ -325,10 +300,13 @@
         logoutBtn.classList.remove('hidden');
         currentUserType = 'teacher';
         currentTeacherName = username;
+        document.getElementById('currentTeacherName').innerText = username;
         document.getElementById('applyForm').reset();
         initDynamicRows();
+        await renderHistoryList();
     }
     
+    // 管理员界面
     async function switchToAdminPanel() {
         teacherLoginPanel.classList.add('hidden');
         adminLoginPanel.classList.add('hidden');
@@ -336,40 +314,110 @@
         adminPanel.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
         currentUserType = 'admin';
+        selectedForDelete.clear();
         await renderTeacherList();
         await renderAllApplications();
     }
     
-    // 教师登录
-    document.getElementById('doTeacherLogin').addEventListener('click', async () => {
-        const username = document.getElementById('teacherUsername').value.trim();
-        const pwd = document.getElementById('teacherPassword').value.trim();
-        const teachers = getTeachers();
-        const found = teachers.find(t => t.username === username && t.password === pwd);
-        if (found) {
-            switchToTeacherPanel(username);
-        } else {
-            document.getElementById('teacherLoginError').innerText = '账号或密码错误';
+    // 渲染教师的历史申请
+    async function renderHistoryList() {
+        const apps = getApplications();
+        const myApps = apps.filter(a => a.submitter === currentTeacherName);
+        const historyDiv = document.getElementById('historyList');
+        
+        if (myApps.length === 0) {
+            historyDiv.innerHTML = '<p style="color: #666;">暂无历史申请记录</p>';
+            return;
         }
-    });
+        
+        let html = '';
+        for (let app of myApps) {
+            const eqStr = (app.equipments || []).map(e => `${e.name} ${e.quantity}${e.unit || ''}`).join(', ') || '无';
+            const chemStr = (app.chemicals || []).map(c => `${c.name} ${c.quantity}${c.unit || ''}`).join(', ') || '无';
+            html += `
+                <div class="history-item">
+                    <h4>📌 ${escapeHtml(app.expName)}</h4>
+                    <p><strong>时间：</strong>${escapeHtml(app.timeDesc)}</p>
+                    <p><strong>器材：</strong>${escapeHtml(eqStr)}</p>
+                    <p><strong>药品：</strong>${escapeHtml(chemStr)}</p>
+                    <p><strong>老师：</strong>${escapeHtml(app.teacher)} | <strong>人数：</strong>${app.studentCount}</p>
+                    <div class="history-actions">
+                        <button class="edit-btn" data-id="${app.id}" style="background:#ffb347;">✏️ 修改</button>
+                        <button class="delete-btn" data-id="${app.id}" style="background:#dc2626;">🗑️ 删除</button>
+                    </div>
+                </div>
+            `;
+        }
+        historyDiv.innerHTML = html;
+        
+        // 绑定修改和删除事件
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = parseInt(btn.getAttribute('data-id'));
+                await editApplication(id);
+            });
+        });
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                if (confirm('确定要删除这条申请记录吗？')) {
+                    const id = parseInt(btn.getAttribute('data-id'));
+                    await deleteApplication(id);
+                    await renderHistoryList();
+                    if (currentUserType === 'admin') await renderAllApplications();
+                    alert('删除成功');
+                }
+            });
+        });
+    }
     
-    // 管理员登录
-    document.getElementById('doAdminLogin').addEventListener('click', async () => {
-        const username = document.getElementById('adminUsername').value;
-        const pwd = document.getElementById('adminPassword').value;
-        const admin = getAdmin();
-        if (username === admin.username && pwd === admin.password) {
-            await switchToAdminPanel();
-        } else {
-            document.getElementById('adminLoginError').innerText = '管理员账号或密码错误';
+    // 修改申请
+    async function editApplication(id) {
+        const apps = getApplications();
+        const app = apps.find(a => a.id === id);
+        if (!app) return;
+        
+        // 填充表单
+        document.getElementById('expName').value = app.expName;
+        const timeMatch = app.timeDesc.match(/第(\d+)周 (\S+) (.+)/);
+        if (timeMatch) {
+            document.getElementById('weekNum').value = timeMatch[1];
+            document.getElementById('weekDay').value = timeMatch[2];
+            document.getElementById('timeRange').value = timeMatch[3];
         }
-    });
+        document.getElementById('teacherName').value = app.teacher;
+        document.getElementById('studentCount').value = app.studentCount;
+        document.getElementById('remarks').value = app.remarks || '';
+        
+        // 清空并重新填充器材和药品
+        const eqDiv = document.getElementById('equipmentList');
+        const chDiv = document.getElementById('chemicalList');
+        eqDiv.innerHTML = '';
+        chDiv.innerHTML = '';
+        
+        (app.equipments || []).forEach(eq => {
+            addEquipmentRowWithData(eq.name, eq.quantity, eq.unit);
+        });
+        (app.chemicals || []).forEach(ch => {
+            addChemicalRowWithData(ch.name, ch.quantity, ch.unit);
+        });
+        
+        if ((app.equipments || []).length === 0) addEquipmentRow();
+        if ((app.chemicals || []).length === 0) addChemicalRow();
+        
+        // 修改提交处理
+        const originalSubmit = document.getElementById('applyForm').onsubmit;
+        document.getElementById('applyForm').onsubmit = async (e) => {
+            e.preventDefault();
+            await submitApplication(true, id);
+            document.getElementById('applyForm').onsubmit = originalSubmit;
+            await renderHistoryList();
+        };
+        
+        alert('请修改表单内容后提交，将覆盖原记录');
+    }
     
     // 提交申请
-    document.getElementById('applyForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (currentUserType !== 'teacher') return;
-        
+    async function submitApplication(isEdit = false, editId = null) {
         const expName = document.getElementById('expName').value.trim();
         const weekNum = document.getElementById('weekNum').value;
         const weekDay = document.getElementById('weekDay').value;
@@ -380,25 +428,27 @@
         
         if (!expName || !weekNum || !timeRange || !teacherName || !studentCount) {
             document.getElementById('applyMsg').innerHTML = '<span class="error-msg">请填写完整必填项</span>';
-            return;
+            return false;
         }
         
         const equipItems = [];
         document.querySelectorAll('#equipmentList .dynamic-row').forEach(row => {
             const name = row.querySelector('.eq-name')?.value.trim();
             const qty = row.querySelector('.eq-qty')?.value;
-            if (name && qty) equipItems.push({ name, quantity: qty });
+            const unit = row.querySelector('.eq-unit')?.value;
+            if (name && qty) equipItems.push({ name, quantity: qty, unit: unit || '' });
         });
         
         const chemItems = [];
         document.querySelectorAll('#chemicalList .dynamic-row').forEach(row => {
             const name = row.querySelector('.ch-name')?.value.trim();
             const qty = row.querySelector('.ch-qty')?.value;
-            if (name && qty) chemItems.push({ name, quantity: qty });
+            const unit = row.querySelector('.ch-unit')?.value;
+            if (name && qty) chemItems.push({ name, quantity: qty, unit: unit || '' });
         });
         
         const newApp = {
-            id: Date.now(),
+            id: isEdit ? editId : Date.now(),
             expName,
             timeDesc: `第${weekNum}周 ${weekDay} ${timeRange}`,
             equipments: equipItems,
@@ -411,14 +461,21 @@
             createdAt: new Date().toISOString()
         };
         
-        await addApplication(newApp);
-        document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 提交成功！数据已同步到云端，其他设备可查看</span>';
+        if (isEdit) {
+            await updateApplication(editId, newApp);
+            document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 修改成功！</span>';
+        } else {
+            await addApplication(newApp);
+            document.getElementById('applyMsg').innerHTML = '<span class="success-msg">✅ 提交成功！</span>';
+        }
+        
         document.getElementById('applyForm').reset();
         initDynamicRows();
-        setTimeout(() => document.getElementById('applyMsg').innerHTML = '', 4000);
-    });
+        setTimeout(() => document.getElementById('applyMsg').innerHTML = '', 3000);
+        return true;
+    }
     
-    // 渲染申请记录
+    // 渲染所有申请记录（管理员）
     async function renderAllApplications() {
         const apps = getApplications();
         if (apps.length === 0) {
@@ -426,11 +483,17 @@
             return;
         }
         
-        let tableHtml = `<table class="data-table"><thead><tr><th>实验名称</th><th>时间</th><th>器材</th><th>药品</th><th>老师</th><th>人数</th><th>备注</th><th>提交教师</th><th>提交时间</th></tr></thead><tbody>`;
+        let tableHtml = `<table class="data-table"><thead><tr>
+            <th><input type="checkbox" id="selectAllCheckbox"></th>
+            <th>实验名称</th><th>时间</th><th>器材</th><th>药品</th><th>老师</th><th>人数</th><th>备注</th><th>提交教师</th><th>操作</th>
+        </tr></thead><tbody>`;
+        
         for (let app of apps) {
-            const eqStr = (app.equipments || []).map(e => `${e.name} x${e.quantity}`).join(', ') || '无';
-            const chemStr = (app.chemicals || []).map(c => `${c.name} x${c.quantity}`).join(', ') || '无';
+            const eqStr = (app.equipments || []).map(e => `${e.name} ${e.quantity}${e.unit || ''}`).join(', ') || '无';
+            const chemStr = (app.chemicals || []).map(c => `${c.name} ${c.quantity}${c.unit || ''}`).join(', ') || '无';
+            const isChecked = selectedForDelete.has(app.id);
             tableHtml += `<tr>
+                <td><input type="checkbox" class="record-checkbox" data-id="${app.id}" ${isChecked ? 'checked' : ''}></td>
                 <td>${escapeHtml(app.expName)}</td>
                 <td>${escapeHtml(app.timeDesc)}</td>
                 <td style="max-width:200px;">${escapeHtml(eqStr)}</td>
@@ -439,21 +502,86 @@
                 <td>${app.studentCount}</td>
                 <td>${escapeHtml(app.remarks)}</td>
                 <td>${escapeHtml(app.submitter)}</td>
-                <td style="font-size:0.75rem;">${escapeHtml(app.submitTime)}</td>
+                <td><button class="delete-single" data-id="${app.id}" style="background:#dc2626; padding:4px 12px;">删除</button></td>
             </tr>`;
         }
         tableHtml += '</tbody></table>';
         document.getElementById('recordsTableContainer').innerHTML = tableHtml;
+        
+        // 绑定复选框事件
+        document.querySelectorAll('.record-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const id = parseInt(cb.getAttribute('data-id'));
+                if (cb.checked) selectedForDelete.add(id);
+                else selectedForDelete.delete(id);
+            });
+        });
+        document.getElementById('selectAllCheckbox')?.addEventListener('change', (e) => {
+            document.querySelectorAll('.record-checkbox').forEach(cb => {
+                cb.checked = e.target.checked;
+                const id = parseInt(cb.getAttribute('data-id'));
+                if (e.target.checked) selectedForDelete.add(id);
+                else selectedForDelete.delete(id);
+            });
+        });
+        
+        // 绑定单个删除
+        document.querySelectorAll('.delete-single').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (confirm('确定删除这条记录？')) {
+                    const id = parseInt(btn.getAttribute('data-id'));
+                    await deleteApplication(id);
+                    await renderAllApplications();
+                }
+            });
+        });
     }
     
-    // 渲染教师列表
+    // 批量删除
+    document.getElementById('batchDeleteBtn')?.addEventListener('click', async () => {
+        if (selectedForDelete.size === 0) { alert('请先选择要删除的记录'); return; }
+        if (confirm(`确定删除 ${selectedForDelete.size} 条记录吗？`)) {
+            await batchDeleteApplications(Array.from(selectedForDelete));
+            selectedForDelete.clear();
+            await renderAllApplications();
+            alert('删除成功');
+        }
+    });
+    
+    // 批量导出
+    document.getElementById('batchExportBtn')?.addEventListener('click', () => {
+        let apps = getApplications();
+        if (selectedForDelete.size > 0) {
+            apps = apps.filter(a => selectedForDelete.has(a.id));
+        }
+        if (!apps.length) { alert('没有要导出的数据'); return; }
+        
+        let docHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>实验申请记录</title></head><body>
+            <h2>化学社团实验申请记录</h2><p>导出时间: ${new Date().toLocaleString()}</p>
+            <table border="1" cellpadding="6" style="border-collapse:collapse; width:100%">
+            <thead><tr><th>实验名称</th><th>时间</th><th>器材</th><th>药品</th><th>老师</th><th>人数</th><th>备注</th></tr></thead><tbody>`;
+        for (let app of apps) {
+            const eqStr = (app.equipments || []).map(e => `${e.name}×${e.quantity}${e.unit || ''}`).join(',');
+            const chemStr = (app.chemicals || []).map(c => `${c.name}×${c.quantity}${c.unit || ''}`).join(',');
+            docHtml += `<tr><td>${app.expName}</td><td>${app.timeDesc}</td><td>${eqStr}</td><td>${chemStr}</td><td>${app.teacher}</td><td>${app.studentCount}</td><td>${app.remarks || ''}</td></tr>`;
+        }
+        docHtml += `</tbody></table></body></html>`;
+        const blob = new Blob([docHtml], { type: 'application/msword' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `实验申请记录_${new Date().toISOString().slice(0, 19)}.doc`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    });
+    
+    // 教师列表渲染
     async function renderTeacherList() {
         const teachers = getTeachers();
         let html = '<ul style="list-style: none; padding-left:0;">';
         for (let teacher of teachers) {
-            html += `<li style="background:#f1f5f9; margin:6px 0; padding:8px 12px; border-radius:20px; display: flex; justify-content: space-between; align-items: center;">
+            html += `<li style="background:#f1f5f9; margin:6px 0; padding:8px 12px; border-radius:20px; display: flex; justify-content: space-between;">
                 <span>📖 ${teacher.username}</span>
-                <button class="delTeacherBtn" data-user="${teacher.username}" style="background:#dc2626; border:none; color:white; padding:4px 16px; border-radius:20px; cursor:pointer;">删除</button>
+                <button class="delTeacherBtn" data-user="${teacher.username}" style="background:#dc2626; border:none; color:white; padding:4px 16px; border-radius:20px;">删除</button>
             </li>`;
         }
         html += '</ul>';
@@ -470,69 +598,8 @@
         });
     }
     
-    // 添加教师
-    document.getElementById('addTeacherBtn').addEventListener('click', async () => {
-        const newUser = document.getElementById('newTeacherUser').value.trim();
-        const newPwd = document.getElementById('newTeacherPwd').value.trim();
-        if (!newUser || !newPwd) { alert('请填写完整'); return; }
-        
-        let teachers = getTeachers();
-        if (teachers.find(t => t.username === newUser)) { alert('账号已存在'); return; }
-        teachers.push({ username: newUser, password: newPwd });
-        await setTeachers(teachers);
-        document.getElementById('newTeacherUser').value = '';
-        document.getElementById('newTeacherPwd').value = '';
-        await renderTeacherList();
-        alert('添加成功，已同步到云端');
-    });
-    
-    // 修改管理员密码
-    document.getElementById('updateAdminPwdBtn').addEventListener('click', async () => {
-        const newPwd = document.getElementById('newAdminPwd').value;
-        if (!newPwd) { document.getElementById('pwdMsg').innerHTML = '<span class="error-msg">请输入新密码</span>'; return; }
-        await updateAdmin({ username: 'admin', password: newPwd });
-        document.getElementById('pwdMsg').innerHTML = '<span class="success-msg">密码更新成功，已同步到云端</span>';
-        setTimeout(() => document.getElementById('pwdMsg').innerHTML = '', 2000);
-    });
-    
-    // 强制同步
-    document.getElementById('forceSyncBtn')?.addEventListener('click', async () => {
-        updateSyncStatus("☁️ 强制同步中...", false);
-        await loadFromCloud();
-        await renderAllApplications();
-        await renderTeacherList();
-        updateSyncStatus("✅ 同步完成", false);
-    });
-    
-    // 导出 DOC
-    document.getElementById('exportDocBtn')?.addEventListener('click', () => {
-        const apps = getApplications();
-        if (!apps.length) { alert('暂无数据'); return; }
-        
-        let docHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>实验申请记录</title></head><body><h2>化学社团实验申请记录</h2><p>导出时间: ${new Date().toLocaleString()}</p><table border="1" cellpadding="6" style="border-collapse:collapse; width:100%"><thead><tr><th>实验名称</th><th>时间</th><th>器材</th><th>药品</th><th>老师</th><th>人数</th><th>备注</th></tr></thead><tbody>`;
-        for (let app of apps) {
-            const eqStr = (app.equipments || []).map(e => `${e.name}×${e.quantity}`).join(',');
-            const chemStr = (app.chemicals || []).map(c => `${c.name}×${c.quantity}`).join(',');
-            docHtml += `<tr><td>${app.expName}</td><td>${app.timeDesc}</td><td>${eqStr}</td><td>${chemStr}</td><td>${app.teacher}</td><td>${app.studentCount}</td><td>${app.remarks || ''}</td></tr>`;
-        }
-        docHtml += `</tbody></table></body></html>`;
-        const blob = new Blob([docHtml], { type: 'application/msword' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `实验申请记录_${new Date().toISOString().slice(0, 19)}.doc`;
-        link.click();
-        URL.revokeObjectURL(link.href);
-    });
-    
-    document.getElementById('refreshRecordsBtn')?.addEventListener('click', async () => {
-        await renderAllApplications();
-        alert('已刷新');
-    });
-    
-    // 动态行功能
-    let currentEquipments = [];
-    let currentChemicals = [];
-    
+    // 动态行（带单位）
+    let currentEquipments = [], currentChemicals = [];
     function loadInventory() {
         currentEquipments = getEquipments();
         currentChemicals = getChemicals();
@@ -545,43 +612,47 @@
         addChemicalRow();
     }
     
-    function addEquipmentRow() {
+    function addEquipmentRowWithData(name, qty, unit) {
         const div = document.createElement('div');
         div.className = 'dynamic-row';
-        div.innerHTML = `<div class="suggest-box"><input type="text" class="eq-name" placeholder="器材名称" autocomplete="off"><div class="suggestions" style="display:none;"></div></div><input type="number" class="eq-qty" placeholder="数量" style="flex:0.8" min="1" value="1"><button type="button" class="remove-row-btn" style="background:#e2e8f0; border:none; padding:8px 14px;">删除</button>`;
-        const nameInput = div.querySelector('.eq-name');
-        const suggestDiv = div.querySelector('.suggestions');
-        nameInput.addEventListener('input', function(e) {
-            const keyword = e.target.value;
-            if (!keyword.trim()) { suggestDiv.style.display = 'none'; return; }
-            const matched = currentEquipments.filter(item => item.includes(keyword));
-            suggestDiv.innerHTML = '';
-            if (matched.length) {
-                suggestDiv.style.display = 'block';
-                matched.forEach(m => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'suggest-item';
-                    itemDiv.innerText = m;
-                    itemDiv.onclick = () => { nameInput.value = m; suggestDiv.style.display = 'none'; };
-                    suggestDiv.appendChild(itemDiv);
-                });
-            } else suggestDiv.style.display = 'none';
-        });
-        document.addEventListener('click', (e) => { if (!div.contains(e.target)) suggestDiv.style.display = 'none'; });
-        div.querySelector('.remove-row-btn').addEventListener('click', () => div.remove());
+        div.innerHTML = `
+            <div class="suggest-box"><input type="text" class="eq-name" value="${escapeHtml(name)}" placeholder="器材名称"><div class="suggestions" style="display:none;"></div></div>
+            <input type="number" class="eq-qty" value="${qty}" placeholder="数量" style="flex:0.8" min="1">
+            <select class="eq-unit" style="flex:0.6"><option value="">单位</option>${UNITS.map(u => `<option value="${u}" ${unit === u ? 'selected' : ''}>${u}</option>`).join('')}</select>
+            <button type="button" class="remove-row-btn" style="background:#e2e8f0;">删除</button>`;
+        setupSuggest(div, '.eq-name', currentEquipments);
+        div.querySelector('.remove-row-btn').onclick = () => div.remove();
         document.getElementById('equipmentList').appendChild(div);
     }
     
-    function addChemicalRow() {
+    function addEquipmentRow() {
+        addEquipmentRowWithData('', 1, '');
+    }
+    
+    function addChemicalRowWithData(name, qty, unit) {
         const div = document.createElement('div');
         div.className = 'dynamic-row';
-        div.innerHTML = `<div class="suggest-box"><input type="text" class="ch-name" placeholder="药品名称" autocomplete="off"><div class="suggestions" style="display:none;"></div></div><input type="number" class="ch-qty" placeholder="数量" style="flex:0.8" min="1" value="1"><button type="button" class="remove-row-btn" style="background:#e2e8f0; border:none; padding:8px 14px;">删除</button>`;
-        const nameInput = div.querySelector('.ch-name');
+        div.innerHTML = `
+            <div class="suggest-box"><input type="text" class="ch-name" value="${escapeHtml(name)}" placeholder="药品名称"><div class="suggestions" style="display:none;"></div></div>
+            <input type="number" class="ch-qty" value="${qty}" placeholder="数量" style="flex:0.8" min="1">
+            <select class="ch-unit" style="flex:0.6"><option value="">单位</option>${UNITS.map(u => `<option value="${u}" ${unit === u ? 'selected' : ''}>${u}</option>`).join('')}</select>
+            <button type="button" class="remove-row-btn" style="background:#e2e8f0;">删除</button>`;
+        setupSuggest(div, '.ch-name', currentChemicals);
+        div.querySelector('.remove-row-btn').onclick = () => div.remove();
+        document.getElementById('chemicalList').appendChild(div);
+    }
+    
+    function addChemicalRow() {
+        addChemicalRowWithData('', 1, '');
+    }
+    
+    function setupSuggest(div, selector, dataList) {
+        const input = div.querySelector(selector);
         const suggestDiv = div.querySelector('.suggestions');
-        nameInput.addEventListener('input', function(e) {
+        input.addEventListener('input', function(e) {
             const keyword = e.target.value;
             if (!keyword.trim()) { suggestDiv.style.display = 'none'; return; }
-            const matched = currentChemicals.filter(item => item.includes(keyword));
+            const matched = dataList.filter(item => item.includes(keyword));
             suggestDiv.innerHTML = '';
             if (matched.length) {
                 suggestDiv.style.display = 'block';
@@ -589,30 +660,89 @@
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'suggest-item';
                     itemDiv.innerText = m;
-                    itemDiv.onclick = () => { nameInput.value = m; suggestDiv.style.display = 'none'; };
+                    itemDiv.onclick = () => { input.value = m; suggestDiv.style.display = 'none'; };
                     suggestDiv.appendChild(itemDiv);
                 });
             } else suggestDiv.style.display = 'none';
         });
         document.addEventListener('click', (e) => { if (!div.contains(e.target)) suggestDiv.style.display = 'none'; });
-        div.querySelector('.remove-row-btn').addEventListener('click', () => div.remove());
-        document.getElementById('chemicalList').appendChild(div);
     }
     
-    document.getElementById('addEquipmentBtn').addEventListener('click', () => addEquipmentRow());
-    document.getElementById('addChemicalBtn').addEventListener('click', () => addChemicalRow());
+    // 折叠功能
+    document.querySelectorAll('.collapse-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const targetId = header.getAttribute('data-target');
+            const content = document.getElementById(targetId);
+            content.classList.toggle('show');
+        });
+    });
+    
+    // 登录和按钮事件
+    document.getElementById('doTeacherLogin').addEventListener('click', async () => {
+        const username = document.getElementById('teacherUsername').value.trim();
+        const pwd = document.getElementById('teacherPassword').value.trim();
+        const teachers = getTeachers();
+        if (teachers.find(t => t.username === username && t.password === pwd)) {
+            await switchToTeacherPanel(username);
+        } else {
+            document.getElementById('teacherLoginError').innerText = '账号或密码错误';
+        }
+    });
+    
+    document.getElementById('doAdminLogin').addEventListener('click', async () => {
+        const username = document.getElementById('adminUsername').value;
+        const pwd = document.getElementById('adminPassword').value;
+        const admin = getAdmin();
+        if (username === admin.username && pwd === admin.password) {
+            await switchToAdminPanel();
+        } else {
+            document.getElementById('adminLoginError').innerText = '管理员账号或密码错误';
+        }
+    });
+    
+    document.getElementById('addTeacherBtn').addEventListener('click', async () => {
+        const newUser = document.getElementById('newTeacherUser').value.trim();
+        const newPwd = document.getElementById('newTeacherPwd').value.trim();
+        if (!newUser || !newPwd) { alert('请填写完整'); return; }
+        let teachers = getTeachers();
+        if (teachers.find(t => t.username === newUser)) { alert('账号已存在'); return; }
+        teachers.push({ username: newUser, password: newPwd });
+        await setTeachers(teachers);
+        document.getElementById('newTeacherUser').value = '';
+        document.getElementById('newTeacherPwd').value = '';
+        await renderTeacherList();
+        alert('添加成功');
+    });
+    
+    document.getElementById('updateAdminPwdBtn').addEventListener('click', async () => {
+        const newPwd = document.getElementById('newAdminPwd').value;
+        if (!newPwd) { document.getElementById('pwdMsg').innerHTML = '<span class="error-msg">请输入新密码</span>'; return; }
+        await updateAdmin({ username: 'admin', password: newPwd });
+        document.getElementById('pwdMsg').innerHTML = '<span class="success-msg">密码更新成功</span>';
+        setTimeout(() => document.getElementById('pwdMsg').innerHTML = '', 2000);
+    });
+    
+    document.getElementById('applyForm').onsubmit = async (e) => {
+        e.preventDefault();
+        await submitApplication(false, null);
+        await renderHistoryList();
+    };
+    
+    document.getElementById('addEquipmentBtn').addEventListener('click', addEquipmentRow);
+    document.getElementById('addChemicalBtn').addEventListener('click', addChemicalRow);
+    document.getElementById('refreshRecordsBtn')?.addEventListener('click', async () => { await renderAllApplications(); });
+    document.getElementById('forceSyncBtn')?.addEventListener('click', async () => { await loadFromCloud(); await renderAllApplications(); await renderTeacherList(); alert('同步完成'); });
     document.getElementById('showTeacherLoginBtn').onclick = () => { showLoginOnly(); teacherLoginPanel.classList.remove('hidden'); adminLoginPanel.classList.add('hidden'); };
     document.getElementById('showAdminLoginBtn').onclick = () => { showLoginOnly(); teacherLoginPanel.classList.add('hidden'); adminLoginPanel.classList.remove('hidden'); };
     logoutBtn.onclick = () => { showLoginOnly(); };
     
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+    function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
     
-    // 启动应用
+    // 启动
     async function start() {
         await loadFromCloud();
         loadInventory();
         showLoginOnly();
-        console.log("系统启动完成，当前数据:", appData);
     }
     start();
 </script>
